@@ -66,7 +66,7 @@ This project uses a **Makefile** and **uv** to automate the setup.
 1.  **Clone the repository:**
 
     ```bash
-    git clone [https://github.com/nakmuaycoder/gemini-coach.git](https://github.com/nakmuaycoder/gemini-coach.git)
+    git clone https://github.com/nakmuaycoder/gemini-coach.git
     cd gemini-coach
     ```
 
@@ -80,6 +80,26 @@ This project uses a **Makefile** and **uv** to automate the setup.
     ```bash
     make install
     ```
+
+
+## 🧠 Setup: Bootstrapping the Strategy
+
+This agent doesn't just guess; it follows a strict periodization plan. However, writing this plan manually in JSON is tedious and error-prone.
+
+**We use a "Teacher LLM" to generate the system prompts and context for the "Daily Agent".**
+
+1.  **Get the Prompt:** Open [`docs/seasonal_planning_prompt.md`](docs/seasonal_planning_prompt.md).
+2.  **The "Director Sportif" Interview:** * Copy the prompt into a high-reasoning model (ChatGPT o1, Claude 3.5, or Gemini Advanced).
+    * Upload your historical data (Intervals.icu CSV, past injuries, goals).
+    * Debate with the LLM until the strategy fits your life constraints.
+3.  **Generate the Configuration:** Ask the LLM to output the final plan as JSON.
+4.  **Inject the Context:** Save the result to:
+    ```bash
+    src/gemini_coach/data/season_plan.json
+    ```
+
+> **Why do this?** This file acts as the "System 2" (Slow Thinking) brain. It ensures the daily Python script ("System 1") doesn't hallucinate a VO2 Max session during a recovery week.
+
 
 ## 🔑 Configuration
 
