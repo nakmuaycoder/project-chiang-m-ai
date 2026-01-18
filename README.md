@@ -34,18 +34,31 @@ As illustrated above, this is not just a one-way street. The system is designed 
 
 ```
 gemini-coach/
-├── assets/
-│   └── workflow.png
 ├── .env
 ├── .gitignore
-├── .pre-commit-config.yaml
-├── .secrets.baseline
-├── LICENSE
 ├── Makefile
-├── README.md
-├── main.py
 ├── pyproject.toml
-└── setup_keys.py
+├── README.md
+├── setup_keys.py
+│
+└── src/
+    └── gemini_coach/
+        ├── __init__.py
+        ├── main.py
+        ├── config.py
+        │
+        ├── models/
+        │   ├── __init__.py
+        │   └── workout.py
+        │
+        ├── clients/
+        │   ├── __init__.py
+        │   ├── intervals.py
+        │   └── gemini.py
+        │
+        └── prompts/
+            ├── __init__.py
+            └── coach.py
 ```
 
 This project uses a **Makefile** and **uv** to automate the setup.
@@ -63,7 +76,7 @@ This project uses a **Makefile** and **uv** to automate the setup.
 
 3.  **Run the installation:**
     This command will install dependencies, setup the virtual environment, and configure git hooks (pre-commit) automatically.
-    
+
     ```bash
     make install
     ```

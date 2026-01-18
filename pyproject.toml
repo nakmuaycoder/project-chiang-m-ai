@@ -22,11 +22,12 @@ build-backend = "hatchling.build"
 
 # Configuration spécifique pour uv (optionnel mais recommandé)
 [tool.uv]
-dev-dependencies = [
-    "pytest>=8.0.0",   # Pour tes futurs tests
-    "ruff>=0.3.0"      # Pour garder ton code propre (linter)
+[dependency-groups]
+dev = [
+    "ruff>=0.9.1",
+    "pre-commit>=4.0.1",
+    "detect-secrets>=1.5.0",
 ]
-
 
 [tool.ruff]
 line-length = 88
@@ -39,3 +40,6 @@ ignore = []
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/gemini_coach"]
