@@ -12,8 +12,10 @@ license = { text = "MIT" }
 # Les dépendances principales
 dependencies = [
     "requests>=2.32.0",          # Pour parler à l'API Intervals.icu
-    "python-dotenv>=1.0.1",      # Pour gérer les clés API via un fichier .env
-    "google-generativeai>=0.8.0" # SDK officiel pour Gemini
+    "python-dotenv>=1.0.1",      # Pour gérer les clés API via un fichier .env # SDK officiel pour Gemini
+    "google-generativeai>=0.8.0",
+    "pydantic>=2.12.5",
+    "pydantic-settings>=2.12.0",
 ]
 
 [build-system]

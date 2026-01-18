@@ -138,7 +138,7 @@ class Zone(BaseModel):
 
         return self
 
-    def __str__(self):
+    def to_value(self):
         """
         Formats the zone as a string range for Intervals.icu API.
         Format: 'MIN% UNIT - MAX% UNIT'
@@ -157,8 +157,8 @@ class Step(BaseModel):
 
     duration: int
     zone: Zone
-    cadence: Optional[str] = None
-    description: Optional[str] = None
+    cadence: str | None = None
+    description: str | None = None
 
     @field_validator("duration", mode="before")
     @classmethod
@@ -207,17 +207,14 @@ class Workout(BaseModel):
     start_date_local: str  # ISO Format YYYY-MM-DDTHH:MM:SS
     category: str = "WORKOUT"
     description: str
-    type: WorkoutType
-    color: Optional[str] = None
-    moving_time: Optional[int] = None
+    type: Literal["Run", "Ride", "Swim", "Other"]
+    color: str | None = None
     steps: List[Step]
 
-    @model_validator(mode="after")
-    def compute_totals(self):
+    @property
+    def moving_time(self):
         """
         Automatically calculates the total moving time if not provided.
         Sums up the duration of all steps.
         """
-        if self.moving_time is None:
-            self.moving_time = sum(s.duration for s in self.steps)
-        return self
+        return sum(s.duration for s in self.steps)
