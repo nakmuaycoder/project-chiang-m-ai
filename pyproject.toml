@@ -1,0 +1,41 @@
+[project]
+name = "gemini-coach"
+version = "0.1.0"
+description = "Assistant d'entraînement IA connectant Gemini à Intervals.icu et TrainingPeaks."
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+    { name = "feherolivier", email = "feherolivier@gmail.com" }
+]
+license = { text = "MIT" }
+
+# Les dépendances principales
+dependencies = [
+    "requests>=2.32.0",          # Pour parler à l'API Intervals.icu
+    "python-dotenv>=1.0.1",      # Pour gérer les clés API via un fichier .env
+    "google-generativeai>=0.8.0" # SDK officiel pour Gemini
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# Configuration spécifique pour uv (optionnel mais recommandé)
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.0.0",   # Pour tes futurs tests
+    "ruff>=0.3.0"      # Pour garder ton code propre (linter)
+]
+
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]  # E=Erreurs, F=Pyflakes, I=Isort (trie les imports)
+ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"

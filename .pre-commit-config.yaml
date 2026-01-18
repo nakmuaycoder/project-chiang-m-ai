@@ -1,0 +1,25 @@
+repos:
+  # 1. Hooks basiques de nettoyage
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace   # Supprime les espaces en fin de ligne
+      - id: end-of-file-fixer     # Assure qu'il y a une ligne vide à la fin
+      - id: check-yaml            # Vérifie la syntaxe des fichiers YAML
+      - id: check-added-large-files # Empêche de commit des fichiers géants
+
+  # 2. Ruff : Formatage et Linting (Ultra rapide)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.9.2  # Vérifie la dernière version si besoin
+    hooks:
+      - id: ruff
+        args: [ --fix ]  # Corrige automatiquement les imports et erreurs simples
+      - id: ruff-format  # Formate le code (remplace Black)
+
+  # 3. Sécurité : Détection de secrets
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
+        exclude: pnpm-lock.yaml # Exemple d'exclusion si besoin
