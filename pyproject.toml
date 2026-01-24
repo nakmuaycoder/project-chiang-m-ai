@@ -1,5 +1,5 @@
 [project]
-name = "gemini-coach"
+name = "llm-coach"
 version = "0.1.0"
 description = "Assistant d'entraînement IA connectant Gemini à Intervals.icu et TrainingPeaks."
 readme = "README.md"
