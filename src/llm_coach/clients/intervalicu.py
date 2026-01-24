@@ -2,6 +2,7 @@ import base64
 from typing import Any, Dict
 
 import requests
+
 from llm_coach.config import settings
 from llm_coach.models.workout import Workout
 

@@ -1,5 +1,5 @@
 [project]
-name = "llm-coach"
+name = "llm_coach"
 version = "0.1.0"
 description = "Assistant d'entraînement IA connectant Gemini à Intervals.icu et TrainingPeaks."
 readme = "README.md"
@@ -47,4 +47,4 @@ quote-style = "double"
 indent-style = "space"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/gemini_coach"]
+packages = ["src/llm_coach"]
