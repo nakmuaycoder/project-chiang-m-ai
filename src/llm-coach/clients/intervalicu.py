@@ -2,9 +2,8 @@ import base64
 from typing import Any, Dict
 
 import requests
-
-from gemini_coach.config import settings
-from gemini_coach.models.workout import Workout
+from llm_coach.config import settings
+from llm_coach.models.workout import Workout
 
 BASE_URL = "https://intervals.icu/api/v1/athlete"
 

@@ -1,11 +1,11 @@
-# 🤖 Gemini Coach
+# 🤖 llm-coach
 
 ![Python](https://img.shields.io/badge/python-3.12+-blue.svg)
 ![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)
 ![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-**Gemini Coach** is a Python-based automation tool that bridges the gap between AI-driven coaching (**Google Gemini**) and your physical training hardware (**Garmin/Wahoo**), using **Intervals.icu** as a strategic middleware.
+**llm-coach** is a Python-based automation tool that bridges the gap between AI-driven coaching (**Google Gemini**) and your physical training hardware (**Garmin/Wahoo**), using **Intervals.icu** as a strategic middleware.
 
 ## 🏗️ Architecture & Workflow
 
@@ -33,7 +33,7 @@ As illustrated above, this is not just a one-way street. The system is designed 
 ## 🚀 Installation
 
 ```
-gemini-coach/
+llm-coach/
 ├── .env
 ├── .gitignore
 ├── Makefile
@@ -42,7 +42,7 @@ gemini-coach/
 ├── setup_keys.py
 │
 └── src/
-    └── gemini_coach/
+    └── llm_coach/
         ├── __init__.py
         ├── main.py
         ├── config.py
@@ -66,8 +66,8 @@ This project uses a **Makefile** and **uv** to automate the setup.
 1.  **Clone the repository:**
 
     ```bash
-    git clone https://github.com/nakmuaycoder/gemini-coach.git
-    cd gemini-coach
+    git clone https://github.com/nakmuaycoder/llm-coach.git
+    cd llm-coach
     ```
 
 2.  **Install uv (if needed):**
@@ -95,7 +95,7 @@ This agent doesn't just guess; it follows a strict periodization plan. However, 
 3.  **Generate the Configuration:** Ask the LLM to output the final plan as JSON.
 4.  **Inject the Context:** Save the result to:
     ```bash
-    src/gemini_coach/data/season_plan.json
+    src/llm-coach/data/season_plan.json
     ```
 
 > **Why do this?** This file acts as the "System 2" (Slow Thinking) brain. It ensures the daily Python script ("System 1") doesn't hallucinate a VO2 Max session during a recovery week.
