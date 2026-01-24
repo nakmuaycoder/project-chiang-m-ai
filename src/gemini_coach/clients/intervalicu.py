@@ -42,31 +42,49 @@ class IntervalicuClient:
             Dict[str, Any]: A dictionary representing the workout in
             Intervals.icu format.
         """
-        # Generate a textual description of the steps for the description field
-        steps_text = []
         formatted_steps = []
+        steps_text = []
 
-        for step in workout.steps:
-            # Format step for API
-            step_data = {
-                "duration": step.duration,
-                "zone": step.zone.to_value(),
-            }
+        # Loop through Top-Level Blocks (Steps objects)
+        for block in workout.steps:
+            # Unroll Repetitions
+            for i in range(block.repetitions):
+                # Is this the last rep?
+                # (For Potential future logic like 'Recover on last rep')
+                # is_last = (i == block.repetitions - 1)
 
-            if step.cadence:
-                step_data["cadence"] = step.cadence
-            if step.description:
-                step_data["description"] = step.description
+                # Loop through Atomic Intervals (Step objects)
+                for step in block.steps:
+                    # Format individual step
+                    step_data = {
+                        "duration": step.duration,
+                        "zone": step.zone.to_value(),
+                    }
 
-            formatted_steps.append(step_data)
+                    if step.cadence:
+                        step_data["cadence"] = step.cadence
+                    if step.description:
+                        step_data["description"] = step.description
 
-            # Format text line for description
-            line = f"- {step.duration}s {step.zone.to_value()}"
-            if step.cadence:
-                line += f" @ {step.cadence}"
-            if step.description:
-                line += f" ({step.description})"
-            steps_text.append(line)
+                    formatted_steps.append(step_data)
+
+                    # Format text line
+                    line = f"- {step.duration}s {step.zone.to_value()}"
+                    if step.cadence:
+                        line += f" @ {step.cadence}"
+                    if step.description:
+                        line += f" ({step.description})"
+
+                    # Indent slightly if part of a set > 1 rep
+                    if block.repetitions > 1:
+                        line = f"  {line}"
+
+                    steps_text.append(line)
+
+            # Add a visual separator in text if there were multiple
+            # blocks(Optional but nice)
+            if block.repetitions > 1 and steps_text:
+                steps_text.append(f"  [x{block.repetitions}]")
 
         # distinct description from the workout summary vs the steps details
         full_description = workout.description

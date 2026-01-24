@@ -152,7 +152,7 @@ class Zone(BaseModel):
 
 class Step(BaseModel):
     """
-    Represents a single interval/step in the workout.
+    Represents a single atomic interval in the workout.
     """
 
     duration: int
@@ -166,36 +166,48 @@ class Step(BaseModel):
         if isinstance(v, int):
             return v
 
+        # Simple parsing logic or reuse existing one
         v_clean = v.strip().lower()
+        if v_clean.isdigit():
+            return int(v_clean)
 
-        pattern_strict = re.compile(
-            r"^(?:(?P<h>\d+)\s*h)?\s*"
-            r"(?:(?P<m>\d+)\s*m)?\s*"
-            r"(?:(?P<s>\d+)\s*s)?$"
+        # Basic parser for "1h 30m 10s" format
+        pattern = re.compile(
+            r"(?:(?P<h>\d+)\s*h)?\s*(?:(?P<m>\d+)\s*m)?\s*(?:(?P<s>\d+)\s*s)?"
         )
-
-        match = pattern_strict.match(v_clean)
-
+        match = pattern.match(v_clean)
         if not match:
+            # Fallback lazy match
             pattern_lazy = re.compile(r"^(?P<h>\d+)\s*h\s*(?P<m>\d+)$")
             match = pattern_lazy.match(v_clean)
 
-        if not match:
-            if v_clean.isdigit():
-                return int(v_clean)
-            raise ValueError(f"Format de durée invalide : '{v}'")
+        if match:
+            parts = match.groupdict()
+            h = int(parts.get("h") or 0)
+            m = int(parts.get("m") or 0)
+            s = int(parts.get("s") or 0)
+            total = (h * 3600) + (m * 60) + s
+            if total > 0:
+                return total
 
-        parts = match.groupdict()
-        h = int(parts.get("h") or 0)
-        m = int(parts.get("m") or 0)
-        s = int(parts.get("s") or 0)
+        raise ValueError(f"Invalid duration format: '{v}'")
 
-        total = (h * 3600) + (m * 60) + s
 
-        if total == 0:
-            raise ValueError(f"Durée nulle : '{v}'")
+class Steps(BaseModel):
+    """
+    A block of steps that can be repeated.
+    Example: 10x (30s On, 30s Off)
+    """
 
-        return total
+    steps: List[Step]
+    repetitions: int = 1
+
+    @property
+    def duration(self) -> int:
+        """
+        Total duration of this block (sequence * repetitions).
+        """
+        return sum(s.duration for s in self.steps) * self.repetitions
 
 
 class Workout(BaseModel):
@@ -209,12 +221,12 @@ class Workout(BaseModel):
     description: str
     type: Literal["Run", "Ride", "Swim", "Other"]
     color: str | None = None
-    steps: List[Step]
+    steps: List[Steps]
 
     @property
     def moving_time(self):
         """
         Automatically calculates the total moving time if not provided.
-        Sums up the duration of all steps.
+        Sums up the duration of all blocks of steps.
         """
-        return sum(s.duration for s in self.steps)
+        return sum(block.duration for block in self.steps)
