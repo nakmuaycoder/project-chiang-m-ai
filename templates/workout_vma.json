@@ -12,7 +12,7 @@
                 {
                     "duration": "10m",
                     "zone": {
-                        "z": "Z1"
+                        "z": "Z1 HR"
                     },
                     "cadence": "120",
                     "description": "Test Step"
@@ -25,7 +25,7 @@
                 {
                     "duration": "30s",
                     "zone": {
-                        "z": "Z5"
+                        "z": "Z5 HR"
                     },
                     "cadence": "120",
                     "description": "Test Step"
@@ -33,7 +33,7 @@
                 {
                     "duration": "30s",
                     "zone": {
-                        "z": "Z1"
+                        "z": "Z1 HR"
                     },
                     "cadence": "120",
                     "description": "Test Step"
@@ -46,7 +46,7 @@
                 {
                     "duration": "10m",
                     "zone": {
-                        "z": "Z1"
+                        "z": "Z1 HR"
                     },
                     "cadence": "120",
                     "description": "Test Step"
