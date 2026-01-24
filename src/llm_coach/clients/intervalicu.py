@@ -57,7 +57,7 @@ class IntervalicuClient:
                 for step in block.steps:
                     # Format individual step
                     step_data = {
-                        "duration": step.duration,
+                        "duration": f"{step.duration}s",
                         "zone": step.zone.to_value(),
                     }
 
@@ -93,7 +93,7 @@ class IntervalicuClient:
 
         output = {
             "start_date_local": workout.start_date_local,
-            "category": workout.category,
+            "category": "WORKOUT",
             "name": workout.name,
             "description": full_description,
             "type": workout.type,  # Get value from Enum
