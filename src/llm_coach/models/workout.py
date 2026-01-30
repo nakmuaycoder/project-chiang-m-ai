@@ -97,7 +97,7 @@ class Zone(BaseModel):
 
         # 1. Unit Detection (Heart Rate)
         if "HR" in raw:
-            self._unit = "HR"
+            self._unit = "LTHR"  # Use "LTHR" to test Intervals.icu compatibility
             # Remove "HR" to simplify numeric parsing later
             raw = raw.replace("HR", "").strip()
         else:
@@ -110,7 +110,7 @@ class Zone(BaseModel):
                 zone_key = match.group(1)
 
                 # Select the correct reference table based on the unit
-                if self._unit == "HR":
+                if self._unit == "LTHR":
                     definition = RunningHRZone.get_zone(zone_key)
                 else:
                     definition = CyclingPowerZone.get_zone(zone_key)

@@ -1,5 +1,10 @@
+"""
+Intervals.icu Client
+
+Handles authentication and workout uploads to Intervals.icu using native workout format.
+"""
+
 import base64
-from typing import Any, Dict
 
 import requests
 
@@ -12,7 +17,7 @@ BASE_URL = "https://intervals.icu/api/v1/athlete"
 class IntervalicuClient:
     """
     Client for interacting with the Intervals.icu API.
-    Handles authentication and workout uploads.
+    Uploads workouts using Intervals.icu's native workout format.
     """
 
     @classmethod
@@ -28,113 +33,126 @@ class IntervalicuClient:
         return base64.b64encode(token).decode("utf-8")
 
     @classmethod
-    def format_workout(cls, workout: Workout) -> Dict[str, Any]:
+    def format_workout_native(cls, workout: Workout) -> str:
         """
-        Formats a Workout model into the JSON structure expected by Intervals.icu.
+        Format workout in Intervals.icu native text format.
 
-        Constructs the payload including metadata (date, type, etc.) and
-        structured steps. It also appends a textual summary of steps to the description.
+        Uses the format: "- 5m in 56% - 75%" (percentage ranges)
+        All repetitions are unrolled into individual steps.
+
+        Format example:
+        - 10m in 60% - 70%
+        - 30s in 90% - 95%
+        - 30s in 60% - 70%
+        ...
 
         Args:
-            workout (Workout): The workout object to format.
+            workout: The Workout object to format
 
         Returns:
-            Dict[str, Any]: A dictionary representing the workout in
-            Intervals.icu format.
+            str: Workout description in Intervals.icu format
         """
-        formatted_steps = []
-        steps_text = []
+        lines = []
 
-        # Loop through Top-Level Blocks (Steps objects)
+        # Unroll all blocks and repetitions
         for block in workout.steps:
-            # Unroll Repetitions
-            for i in range(block.repetitions):
-                # Is this the last rep?
-                # (For Potential future logic like 'Recover on last rep')
-                # is_last = (i == block.repetitions - 1)
-
-                # Loop through Atomic Intervals (Step objects)
+            for rep in range(block.repetitions):
                 for step in block.steps:
-                    # Format individual step
-                    step_data = {
-                        "duration": f"{step.duration}s",
-                        "zone": step.zone.to_value(),
-                    }
+                    duration_str = cls._format_duration(step.duration)
+                    # Use percentage format: "56% - 75%"
+                    zone_str = step.zone.to_value()
 
+                    # Use Intervals.icu format: "- 5m in 56% - 75%"
+                    description = f"- {duration_str} in {zone_str}"
+
+                    # Add cadence if present
                     if step.cadence:
-                        step_data["cadence"] = step.cadence
-                    if step.description:
-                        step_data["description"] = step.description
+                        description += f" ({step.cadence}rpm)"
 
-                    formatted_steps.append(step_data)
+                    lines.append(description)
 
-                    # Format text line
-                    line = f"- {step.duration}s {step.zone.to_value()}"
-                    if step.cadence:
-                        line += f" @ {step.cadence}"
-                    if step.description:
-                        line += f" ({step.description})"
+        return "\n".join(lines)
 
-                    # Indent slightly if part of a set > 1 rep
-                    if block.repetitions > 1:
-                        line = f"  {line}"
+    @classmethod
+    def _format_duration(cls, seconds: int) -> str:
+        """Format duration in human-readable format."""
+        if seconds >= 3600:
+            hours = seconds // 3600
+            mins = (seconds % 3600) // 60
+            if mins > 0:
+                return f"{hours}h{mins}m"
+            return f"{hours}h"
+        elif seconds >= 60:
+            mins = seconds // 60
+            secs = seconds % 60
+            if secs > 0:
+                return f"{mins}m{secs}s"
+            return f"{mins}m"
+        else:
+            return f"{seconds}s"
 
-                    steps_text.append(line)
-
-            # Add a visual separator in text if there were multiple
-            # blocks(Optional but nice)
-            if block.repetitions > 1 and steps_text:
-                steps_text.append(f"  [x{block.repetitions}]")
-
-        # distinct description from the workout summary vs the steps details
-        full_description = workout.description
-        if steps_text:
-            full_description += "\n\n" + "\n".join(steps_text)
-
-        output = {
-            "start_date_local": workout.start_date_local,
-            "category": "WORKOUT",
-            "name": workout.name,
-            "description": full_description,
-            "type": workout.type,  # Get value from Enum
-            "moving_time": workout.moving_time,
-            "steps": formatted_steps,
-        }
-
-        if workout.color:
-            output["color"] = workout.color
-
-        return output
-
-    def upload_workout(self, *workouts: Workout) -> bool:
+    @classmethod
+    def upload_workout(cls, *workouts: Workout) -> bool:
         """
-        Uploads one or more workouts to the Intervals.icu calendar.
+        Uploads one or more workouts to Intervals.icu.
 
-        Uses the 'bulk' events endpoint to create workouts.
+        Uses the native Intervals.icu workout format which preserves
+        step ordering correctly.
 
         Args:
-            *workouts (Workout): Variable number of Workout objects to upload.
+            *workouts: Variable number of Workout objects to upload
 
         Returns:
-            bool: True if the upload was successful, False otherwise.
+            bool: True if all uploads were successful, False otherwise
         """
-        auth_token = self.encode_auth()
+        auth_token = cls.encode_auth()
         headers = {
             "Authorization": f"Basic {auth_token}",
             "Content-Type": "application/json",
         }
 
-        formatted_workouts = [self.format_workout(w) for w in workouts]
-
         athlete_id = settings.INTERVALS_ATHLETE_ID
-        url = f"{BASE_URL}/{athlete_id}/events/bulk"
+        url = f"{BASE_URL}/{athlete_id}/events"
 
-        try:
-            response = requests.post(url, headers=headers, json=formatted_workouts)
-            response.raise_for_status()
-            return True
-        except requests.exceptions.RequestException as e:
-            print(f"Error uploading workout: {e}")
-            if hasattr(e, "response") and e.response is not None:
-                print(f"Response: {e.response.text}")
-            return False
+        success = True
+        for workout in workouts:
+            try:
+                # Format workout in native format
+                workout_description = cls.format_workout_native(workout)
+
+                # Prepare event payload
+                event_payload = {
+                    "start_date_local": workout.start_date_local,
+                    "category": "WORKOUT",
+                    "name": workout.name,
+                    "description": workout_description,
+                    "type": workout.type,
+                    "moving_time": workout.moving_time,
+                }
+
+                if workout.color:
+                    event_payload["color"] = workout.color
+
+                print(f"\n📝 Uploading: {workout.name}")
+                print("   Format: Intervals.icu native")
+                print(f"   Duration: {workout.moving_time}s")
+                print("\nWorkout structure:")
+                print(workout_description)
+                print(f"\n⬆️  Uploading to {url}")
+
+                response = requests.post(url, headers=headers, json=event_payload)
+                response.raise_for_status()
+
+                print(f"✅ Successfully uploaded '{workout.name}'")
+
+            except requests.exceptions.RequestException as e:
+                print(f"❌ Error uploading workout '{workout.name}': {e}")
+                if hasattr(e, "response") and e.response is not None:
+                    print(f"   Status: {e.response.status_code}")
+                    print(f"   Response: {e.response.text}")
+                success = False
+            except Exception as e:
+                print(f"❌ Unexpected error for '{workout.name}': {e}")
+                success = False
+
+        return success
