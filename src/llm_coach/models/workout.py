@@ -1,8 +1,15 @@
 import re
 from enum import Enum
-from typing import List, Literal, Optional, Union
+from typing import Annotated, List, Literal, Optional, Union
 
-from pydantic import BaseModel, Field, PrivateAttr, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    Field,
+    PrivateAttr,
+    TypeAdapter,
+    field_validator,
+    model_validator,
+)
 
 
 class ZoneDefinition(BaseModel):
@@ -85,7 +92,7 @@ class Zone(BaseModel):
     # Private attributes for internal storage (not exposed in JSON output)
     _start: Optional[int] = PrivateAttr(default=None)
     _end: Optional[int] = PrivateAttr(default=None)
-    _unit: Literal["HR", ""] = PrivateAttr(default="")
+    _unit: str = PrivateAttr(default="")  # Can be "HR", "LTHR", or ""
 
     @model_validator(mode="after")
     def parse_content(self):
@@ -210,23 +217,85 @@ class Steps(BaseModel):
         return sum(s.duration for s in self.steps) * self.repetitions
 
 
-class Workout(BaseModel):
-    """
-    The main object representing the structured workout.
-    """
-
+class BaseWorkout(BaseModel):
     name: str
-    start_date_local: str  # ISO Format YYYY-MM-DDTHH:MM:SS
+    start_date_local: str
     category: str = "WORKOUT"
     description: str
-    type: Literal["Run", "Ride", "Swim", "Other"]
-    color: str | None = None
     steps: List[Steps]
+    color: Optional[str] = None
 
     @property
     def moving_time(self):
-        """
-        Automatically calculates the total moving time if not provided.
-        Sums up the duration of all blocks of steps.
-        """
         return sum(block.duration for block in self.steps)
+
+
+class RunWorkout(BaseWorkout):
+    type: Literal["Run"] = "Run"  # Le discriminateur
+
+    @model_validator(mode="after")
+    def enforce_lthr_zones(self):
+        """
+        Logique spécifique au Run : Force le LTHR.
+        """
+        for block in self.steps:
+            for step in block.steps:
+                z = step.zone
+                if z._unit in ["", "HR"]:
+                    z._unit = "LTHR"
+
+                    raw_key = z.z.strip().upper().replace("HR", "").strip()
+                    if raw_key.startswith("Z"):
+                        match = re.match(r"(Z\d+)", raw_key)
+                        if match:
+                            definition = RunningHRZone.get_zone(match.group(1))
+                            if definition:
+                                z._start = definition.start
+                                z._end = definition.end
+        return self
+
+    def to_intervals_description(self) -> str:
+        lines = [f"Description: {self.description}\n"]
+        for block in self.steps:
+            if block.repetitions > 1:
+                lines.append(f"{block.repetitions}x")
+            for step in block.steps:
+                la_con_de_ta_mere = f"- {step.duration}s {step.zone.to_value()}"
+                la_con_de_ta_mere += f"{step.description}"
+                lines.append(la_con_de_ta_mere)
+            lines.append("")
+        return "\n".join(lines)
+
+
+class RideWorkout(BaseWorkout):
+    type: Literal["Ride", "Bike"] = "Ride"
+
+    def to_intervals_description(self) -> str:
+        lines = [f"Description: {self.description}\n"]
+        for block in self.steps:
+            if block.repetitions > 1:
+                lines.append(f"{block.repetitions}x")
+            for step in block.steps:
+                lines.append(
+                    f"- {step.duration}s {step.zone.to_value()}"
+                    + f" {step.description or ''}"
+                )
+                if step.cadence:
+                    lines[-1] += f" rpm={step.cadence}"
+            lines.append("")
+        return "\n".join(lines)
+
+
+# Define the discriminated union type
+WorkoutUnion = Annotated[Union[RunWorkout, RideWorkout], Field(discriminator="type")]
+
+# Create TypeAdapter for validation
+_workout_adapter = TypeAdapter(WorkoutUnion)
+
+
+# Helper function to create Workout instances
+def Workout(**data):
+    """
+    Factory function to create the appropriate Workout subclass based on 'type' field.
+    """
+    return _workout_adapter.validate_python(data)
