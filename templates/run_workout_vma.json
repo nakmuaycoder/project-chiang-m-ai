@@ -1,6 +1,6 @@
 {
     "name": "Test Session",
-    "start_date_local": "2026-01-24T16:21:29",
+    "start_date_local": "2026-02-01T16:21:29",
     "category": "Run",
     "description": "Test Session",
     "type": "Run",
@@ -15,7 +15,7 @@
                         "z": "Z1 HR"
                     },
                     "cadence": "120",
-                    "description": "Test Step"
+                    "description": "warmup"
                 }
             ]
         },
