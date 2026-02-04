@@ -219,7 +219,7 @@ class Steps(BaseModel):
 
 class BaseWorkout(BaseModel):
     name: str
-    start_date_local: str
+    start_date_local: Optional[str] = None
     category: str = "WORKOUT"
     description: str
     steps: List[Steps]

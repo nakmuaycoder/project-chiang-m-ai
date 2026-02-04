@@ -120,9 +120,23 @@ class IntervalicuClient:
                 # Format workout in native format
                 workout_description = cls.format_workout_native(workout)
 
+                # Strip timezone from date - Intervals.icu doesn't accept timezone
+                #  offsets
+                # Convert '2026-02-17T18:00:00+01:00' to '2026-02-17T18:00:00'
+                import re
+
+                start_date = workout.start_date_local
+                if start_date:
+                    # Extract just the datetime part (before timezone)
+                    match = re.match(
+                        r"(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})", start_date
+                    )
+                    if match:
+                        start_date = match.group(1)
+
                 # Prepare event payload
                 event_payload = {
-                    "start_date_local": workout.start_date_local,
+                    "start_date_local": start_date,
                     "category": "WORKOUT",
                     "name": workout.name,
                     "description": workout_description,
