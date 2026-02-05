@@ -141,6 +141,10 @@ class CoachService:
             "errors": [],
         }
 
+        # Track uploaded workouts to detect duplicates
+        # Key: (name, date, type, description_hash)
+        uploaded_signatures = set()
+
         for idx, event in enumerate(coach_events, 1):
             print(f"\n{'=' * 70}")
             print(f"Processing event {idx}/{len(coach_events)}: {event['summary']}")
@@ -148,6 +152,32 @@ class CoachService:
 
             try:
                 workout = self._parse_workout_from_event(event)
+
+                # Create workout signature for duplicate detection
+                import hashlib
+
+                description_hash = hashlib.md5(
+                    workout.description.encode("utf-8")
+                ).hexdigest()[:8]
+
+                workout_signature = (
+                    workout.name,
+                    workout.start_date_local[:10]
+                    if workout.start_date_local
+                    else "no-date",
+                    workout.type,
+                    description_hash,
+                )
+
+                # Check for duplicate
+                if workout_signature in uploaded_signatures:
+                    print(f"⏭️  Skipping duplicate workout: '{workout.name}'")
+                    print("   Already processed in this sync session")
+                    results["processed"] -= 1
+                    continue
+
+                # Mark as seen
+                uploaded_signatures.add(workout_signature)
 
                 if dry_run:
                     print(f"🔍 DRY RUN: Would upload workout: {workout.name}")
