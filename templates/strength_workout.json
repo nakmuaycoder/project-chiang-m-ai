@@ -1,0 +1,83 @@
+{
+    "name": "Upper Body Push",
+    "description": "Chest, shoulders, triceps strength training",
+    "blocks": [
+        {
+            "name": "Warmup",
+            "exercises": [
+                {
+                    "name": "Arm circles",
+                    "sets": 2,
+                    "reps": "10 each direction"
+                },
+                {
+                    "name": "Band pull-aparts",
+                    "sets": 2,
+                    "reps": "15"
+                }
+            ]
+        },
+        {
+            "name": "Compound Movements",
+            "exercises": [
+                {
+                    "name": "Bench Press",
+                    "sets": 4,
+                    "reps": "5",
+                    "weight": "80kg",
+                    "rest": "3m",
+                    "notes": "RPE 8"
+                },
+                {
+                    "name": "Overhead Press",
+                    "sets": 3,
+                    "reps": "8",
+                    "weight": "50kg",
+                    "rest": "2m30s"
+                },
+                {
+                    "name": "Incline Dumbbell Press",
+                    "sets": 3,
+                    "reps": "10",
+                    "weight": "60kg total",
+                    "rest": "2m"
+                }
+            ]
+        },
+        {
+            "name": "Accessories",
+            "exercises": [
+                {
+                    "name": "Dips",
+                    "sets": 3,
+                    "reps": "AMRAP",
+                    "weight": "bodyweight",
+                    "rest": "90s"
+                },
+                {
+                    "name": "Cable Flyes",
+                    "sets": 3,
+                    "reps": "15",
+                    "weight": "20kg",
+                    "rest": "60s"
+                },
+                {
+                    "name": "Tricep Extensions",
+                    "sets": 3,
+                    "reps": "12-15",
+                    "weight": "15kg",
+                    "rest": "60s"
+                },
+                {
+                    "name": "Lateral Raises",
+                    "sets": 3,
+                    "reps": "15-20",
+                    "weight": "10kg",
+                    "rest": "45s"
+                }
+            ]
+        }
+    ],
+    "estimated_duration": 3600,
+    "color": "#FF6B6B"
+}
