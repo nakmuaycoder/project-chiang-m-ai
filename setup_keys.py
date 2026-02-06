@@ -24,7 +24,9 @@ def main() -> None:
     parser.add_argument(
         "--intervals_key", required=True, help="Your Intervals.icu API Key"
     )
-    parser.add_argument("--google_key", required=True, help="Your Google Gemini API Key")
+    parser.add_argument(
+        "--google_key", required=True, help="Your Google Gemini API Key"
+    )
 
     args = parser.parse_args()
 
@@ -44,7 +46,8 @@ def main() -> None:
             f.write(env_content)
         print("✅ Success! API keys have been saved locally.")
         print(
-            "⚠️  IMPORTANT: This file contains secrets. It is ignored by Git and will NOT be uploaded to GitHub."
+            "⚠️  IMPORTANT: This file contains secrets. It is ignored by Git and "
+            "will NOT be uploaded to GitHub."
         )
     except Exception as e:
         print(f"❌ Error writing .env file: {e}")
