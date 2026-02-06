@@ -167,8 +167,10 @@ class CoachService:
                 # Create workout signature for duplicate detection
                 import hashlib
 
+                # Hash the ENTIRE event description (JSON) for change detection
+                event_description = event.get("description", "")
                 description_hash = hashlib.md5(
-                    workout.description.encode("utf-8")
+                    event_description.encode("utf-8")
                 ).hexdigest()[:8]
 
                 workout_signature = (
@@ -179,6 +181,46 @@ class CoachService:
                     workout.type,
                     description_hash,
                 )
+
+                # Check if this event was previously synced and if it has been updated
+                if self.tracker:
+                    event_id = event.get("id")
+                    existing_mapping = self.tracker.history.find_by_calendar_id(
+                        event_id
+                    )
+
+                    if existing_mapping:
+                        # Primary detection: Compare workout content hash
+                        if existing_mapping.workout_hash != description_hash:
+                            print("🔄 Workout content has changed!")
+                            print(f"   Old hash: {existing_mapping.workout_hash}")
+                            print(f"   New hash: {description_hash}")
+
+                            # Delete the old workout from Intervals.icu
+                            if existing_mapping.intervalicu_id:
+                                workout_id = existing_mapping.intervalicu_id
+                                print(
+                                    f"   🗑️  Deleting old workout (ID: {workout_id})..."
+                                )
+                                delete_result = self.intervalicu_client.delete_workout(
+                                    existing_mapping.intervalicu_id
+                                )
+                                if delete_result.get("success"):
+                                    print("   ✅ Deleted old workout")
+                                else:
+                                    error_message = delete_result.get("error")
+                                    error_message = (
+                                        "   ⚠️  Failed to delete old workout: {}"
+                                    )
+                                    print(error_message.format(error_message))
+
+                            # Continue to upload new version
+                        else:
+                            # Content unchanged - skip
+                            print(f"⏭️  Skipping unchanged workout: '{workout.name}'")
+                            print("   Content hash matches - no changes detected")
+                            results["processed"] -= 1
+                            continue
 
                 # Check for duplicate
                 if workout_signature in uploaded_signatures:
@@ -310,6 +352,11 @@ class CoachService:
         print("📝 Parsing workout from event description...")
 
         try:
+            # Decode HTML entities (Google Calendar may escape quotes as &quot;)
+            import html
+
+            description = html.unescape(description)
+
             # Parse JSON from event description
             payload = json.loads(description)
 

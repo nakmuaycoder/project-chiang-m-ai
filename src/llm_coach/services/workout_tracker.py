@@ -23,6 +23,9 @@ class WorkoutMapping(BaseModel):
     calendar_event_id: str
     calendar_event_summary: str
     calendar_event_start: str
+    calendar_event_updated: Optional[str] = (
+        None  # When calendar event was last modified
+    )
 
     # Intervals.icu info
     intervalicu_id: Optional[int] = None  # Workout ID from Intervals.icu
@@ -138,6 +141,7 @@ class WorkoutSyncTracker:
         # Extract calendar event info
         event_id = calendar_event.get("id", "unknown")
         event_summary = calendar_event.get("summary", "Unknown")
+        # event_updated = calendar_event.get("updated")  # When event was last modified
 
         event_start = calendar_event.get("start", {})
         if "dateTime" in event_start:
