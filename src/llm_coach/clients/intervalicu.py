@@ -92,18 +92,15 @@ class IntervalicuClient:
             return f"{seconds}s"
 
     @classmethod
-    def upload_workout(cls, *workouts: Workout) -> bool:
+    def upload_workout(cls, workout):
         """
-        Uploads one or more workouts to Intervals.icu.
-
-        Uses the native Intervals.icu workout format which preserves
-        step ordering correctly.
+        Upload a workout to Intervals.icu using native workout format.
 
         Args:
-            *workouts: Variable number of Workout objects to upload
+            workout: Workout object (RunWorkout or RideWorkout)
 
         Returns:
-            bool: True if all uploads were successful, False otherwise
+            dict: {"success": bool, "workout_id": int or None, "error": str or None}
         """
         auth_token = cls.encode_auth()
         headers = {
@@ -114,59 +111,94 @@ class IntervalicuClient:
         athlete_id = settings.INTERVALS_ATHLETE_ID
         url = f"{BASE_URL}/{athlete_id}/events"
 
-        success = True
-        for workout in workouts:
-            try:
-                # Format workout in native format
-                workout_description = cls.format_workout_native(workout)
+        try:
+            # Format workout in native format
+            workout_description = cls.format_workout_native(workout)
 
-                # Strip timezone from date - Intervals.icu doesn't accept timezone
-                #  offsets
-                # Convert '2026-02-17T18:00:00+01:00' to '2026-02-17T18:00:00'
-                import re
+            # Strip timezone from date
+            import re
 
-                start_date = workout.start_date_local
-                if start_date:
-                    # Extract just the datetime part (before timezone)
-                    match = re.match(
-                        r"(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})", start_date
-                    )
-                    if match:
-                        start_date = match.group(1)
+            start_date = workout.start_date_local
+            if start_date:
+                match = re.match(r"(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})", start_date)
+                if match:
+                    start_date = match.group(1)
 
-                # Prepare event payload
-                event_payload = {
-                    "start_date_local": start_date,
-                    "category": "WORKOUT",
-                    "name": workout.name,
-                    "description": workout_description,
-                    "type": workout.type,
-                    "moving_time": workout.moving_time,
-                }
+            # Prepare event payload
+            event_payload = {
+                "start_date_local": start_date,
+                "category": "WORKOUT",
+                "name": workout.name,
+                "description": workout_description,
+                "type": workout.type,
+                "moving_time": workout.moving_time,
+            }
 
-                if workout.color:
-                    event_payload["color"] = workout.color
+            if workout.color:
+                event_payload["color"] = workout.color
 
-                print(f"\n📝 Uploading: {workout.name}")
-                print("   Format: Intervals.icu native")
-                print(f"   Duration: {workout.moving_time}s")
-                print("\nWorkout structure:")
-                print(workout_description)
-                print(f"\n⬆️  Uploading to {url}")
+            print(f"\n📝 Uploading: {workout.name}")
+            print("   Format: Intervals.icu native")
+            print(f"   Duration: {workout.moving_time}s")
+            print("\nWorkout structure:")
+            print(workout_description)
+            print(f"\n⬆️  Uploading to {url}")
 
-                response = requests.post(url, headers=headers, json=event_payload)
-                response.raise_for_status()
+            response = requests.post(url, headers=headers, json=event_payload)
+            response.raise_for_status()
 
-                print(f"✅ Successfully uploaded '{workout.name}'")
+            # Extract workout ID from response
+            response_data = response.json()
+            workout_id = response_data.get("id")
 
-            except requests.exceptions.RequestException as e:
-                print(f"❌ Error uploading workout '{workout.name}': {e}")
-                if hasattr(e, "response") and e.response is not None:
-                    print(f"   Status: {e.response.status_code}")
-                    print(f"   Response: {e.response.text}")
-                success = False
-            except Exception as e:
-                print(f"❌ Unexpected error for '{workout.name}': {e}")
-                success = False
+            print(f"✅ Successfully uploaded '{workout.name}'")
+            if workout_id:
+                print(f"   Intervals.icu ID: {workout_id}")
 
-        return success
+            return {"success": True, "workout_id": workout_id, "error": None}
+
+        except requests.exceptions.RequestException as e:
+            print(f"❌ Error uploading workout '{workout.name}': {e}")
+            if hasattr(e, "response") and e.response is not None:
+                print(f"   Status: {e.response.status_code}")
+                print(f"   Response: {e.response.text}")
+            return {"success": False, "workout_id": None, "error": str(e)}
+        except Exception as e:
+            print(f"❌ Unexpected error for '{workout.name}': {e}")
+            return {"success": False, "workout_id": None, "error": str(e)}
+
+    @classmethod
+    def delete_workout(cls, workout_id: int) -> dict:
+        """
+        Delete a workout from Intervals.icu by ID.
+
+        Args:
+            workout_id: Intervals.icu workout/event ID
+
+        Returns:
+            dict: {"success": bool, "error": str or None}
+        """
+        auth_token = cls.encode_auth()
+        headers = {
+            "Authorization": f"Basic {auth_token}",
+        }
+
+        athlete_id = settings.INTERVALS_ATHLETE_ID
+        url = f"{BASE_URL}/{athlete_id}/events/{workout_id}"
+
+        try:
+            response = requests.delete(url, headers=headers)
+            response.raise_for_status()
+
+            print(f"✅ Deleted workout ID: {workout_id}")
+            return {"success": True, "error": None}
+
+        except requests.exceptions.RequestException as e:
+            print(f"❌ Error deleting workout {workout_id}: {e}")
+            if hasattr(e, "response") and e.response is not None:
+                print(f"   Status: {e.response.status_code}")
+                print(f"   Response: {e.response.text}")
+            return {"success": False, "error": str(e)}
+        except Exception as e:
+            print(f"❌ Unexpected error deleting {workout_id}: {e}")
+            return {"success": False, "error": str(e)}

@@ -5,11 +5,13 @@ Orchestrates the workflow of syncing workouts from Google Calendar to Intervals.
 """
 
 import json
+import uuid
 from typing import Any, Dict, List
 
 from llm_coach.clients.google_calendar import GoogleCalendarClient
 from llm_coach.clients.intervalicu import IntervalicuClient
 from llm_coach.models.workout import Workout
+from llm_coach.services.workout_tracker import WorkoutSyncTracker
 
 
 class CoachService:
@@ -18,10 +20,16 @@ class CoachService:
     Google Calendar and Intervals.icu.
     """
 
-    def __init__(self):
-        """Initialize the coach service with required clients."""
+    def __init__(self, enable_tracking: bool = True):
+        """
+        Initialize the coach service with required clients.
+
+        Args:
+            enable_tracking: Enable workout sync tracking (default: True)
+        """
         self.calendar_client = GoogleCalendarClient()
         self.intervalicu_client = IntervalicuClient()
+        self.tracker = WorkoutSyncTracker() if enable_tracking else None
 
     def sync_from_calendar(
         self,
@@ -141,6 +149,9 @@ class CoachService:
             "errors": [],
         }
 
+        # Generate unique sync session ID
+        sync_session_id = str(uuid.uuid4())[:8]
+
         # Track uploaded workouts to detect duplicates
         # Key: (name, date, type, description_hash)
         uploaded_signatures = set()
@@ -186,15 +197,43 @@ class CoachService:
                     results["uploaded"] += 1
                 else:
                     # Upload to Intervals.icu
-                    success = self.intervalicu_client.upload_workout(workout)
+                    upload_result = self.intervalicu_client.upload_workout(workout)
 
-                    if success:
+                    if upload_result.get("success"):
                         results["uploaded"] += 1
+                        workout_id = upload_result.get("workout_id")
+
+                        # Track the sync if tracking is enabled
+                        if self.tracker:
+                            self.tracker.record_sync(
+                                calendar_event=event,
+                                workout_name=workout.name,
+                                workout_type=workout.type,
+                                workout_hash=description_hash,
+                                sync_session_id=sync_session_id,
+                                intervalicu_id=workout_id,
+                                status="uploaded",
+                            )
                     else:
                         results["failed"] += 1
                         results["errors"].append(
-                            {"event": event["summary"], "error": "Upload failed"}
+                            {
+                                "event": event["summary"],
+                                "error": upload_result.get("error", "Upload failed"),
+                            }
                         )
+
+                        # Track failed sync
+                        if self.tracker:
+                            self.tracker.record_sync(
+                                calendar_event=event,
+                                workout_name=workout.name,
+                                workout_type=workout.type,
+                                workout_hash=description_hash,
+                                sync_session_id=sync_session_id,
+                                intervalicu_id=None,
+                                status="failed",
+                            )
 
             except Exception as e:
                 print(f"❌ Error processing event '{event['summary']}': {e}")
@@ -216,6 +255,11 @@ class CoachService:
                 print(f"   - {error['event']}: {error['error']}")
 
         print(f"{'=' * 70}\n")
+        print(f"{'=' * 70}\n")
+
+        # Print tracker stats if enabled
+        if self.tracker:
+            self.tracker.print_stats()
 
         return results
 
