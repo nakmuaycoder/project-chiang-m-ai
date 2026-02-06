@@ -57,6 +57,12 @@ def main():
         max_results=100, sync_mode=sync_mode, dry_run=False
     )
 
+    # Clean up deleted calendar events
+    print("\n" + "=" * 70)
+    print("🧹 CHECKING FOR DELETED EVENTS")
+    print("=" * 70)
+    coach.cleanup_deleted_events()
+
     # Print final result
     if results["success"] and results["failed"] == 0:
         print("\n✅ Sync completed successfully!")

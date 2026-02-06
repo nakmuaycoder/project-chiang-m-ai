@@ -305,6 +305,92 @@ class CoachService:
 
         return results
 
+    def cleanup_deleted_events(
+        self, calendar_events: List[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """
+        Clean up workouts that were deleted from calendar.
+
+        Finds workouts in database that no longer exist in calendar,
+        deletes them from Intervals.icu, and removes from database.
+
+        Args:
+            calendar_events: List of current calendar events (optional,
+                           will fetch if not provided)
+
+        Returns:
+            dict: {
+                "success": bool,
+                "deleted": int,
+                "failed": int,
+                "errors": []
+            }
+        """
+        if not self.tracker:
+            print("⚠️  Tracking not enabled - cannot clean up deleted events")
+            return {
+                "success": False,
+                "deleted": 0,
+                "failed": 0,
+                "errors": ["Tracking not enabled"],
+            }
+
+        # Fetch calendar events if not provided
+        if calendar_events is None:
+            calendar_events = self.calendar_client.list_upcoming_events(max_results=100)
+
+        # Create set of current calendar event IDs
+        current_event_ids = {event["id"] for event in calendar_events}
+
+        # Find deleted events (in DB but not in calendar)
+        deleted_mappings = []
+        for mapping in self.tracker.history.mappings:
+            if mapping.calendar_event_id not in current_event_ids:
+                deleted_mappings.append(mapping)
+
+        if not deleted_mappings:
+            return {"success": True, "deleted": 0, "failed": 0, "errors": []}
+
+        print(f"\n🗑️  Found {len(deleted_mappings)} deleted calendar event(s)")
+
+        deleted_count = 0
+        failed_count = 0
+        errors = []
+
+        for mapping in deleted_mappings:
+            print(f"   • {mapping.calendar_event_summary}")
+
+            # Delete from Intervals.icu if ID exists
+            if mapping.intervalicu_id:
+                delete_result = self.intervalicu_client.delete_workout(
+                    mapping.intervalicu_id
+                )
+
+                if delete_result.get("success"):
+                    print("     ✅ Deleted from Intervals.icu")
+                    deleted_count += 1
+                else:
+                    error_msg = delete_result.get("error", "Unknown error")
+                    print(f"     ⚠️  Failed: {error_msg}")
+                    failed_count += 1
+                    errors.append(f"{mapping.calendar_event_summary}: {error_msg}")
+
+            # Remove from database
+            self.tracker.history.mappings.remove(mapping)
+            print("     ✅ Removed from database")
+
+        # Save updated database
+        self.tracker._save_history()
+
+        print(f"\n✅ Cleanup complete: {deleted_count} deleted, {failed_count} failed")
+
+        return {
+            "success": failed_count == 0,
+            "deleted": deleted_count,
+            "failed": failed_count,
+            "errors": errors,
+        }
+
     def _filter_coach_events(
         self, events: List[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
