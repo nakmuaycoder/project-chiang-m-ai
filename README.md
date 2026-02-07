@@ -5,128 +5,221 @@
 ![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-**llm-coach** is a Python-based automation tool that bridges the gap between AI-driven coaching (**Google Gemini**) and your physical training hardware (**Garmin/Wahoo**), using **Intervals.icu** as a strategic middleware.
+**llm-coach** syncs AI-generated training plans (from Gemini/ChatGPT) to your training devices (Garmin, Wahoo, smart trainers) via **Intervals.icu**.
 
 ## 🏗️ Architecture & Workflow
 
 ![Gemini Coach Workflow](assets/workflow.png)
 
 ### The Problem
-I use **TrainingPeaks Virtual** to control my smart trainer. However, TPV **does not offer a public API** for individual users to push custom workouts programmatically. This breaks the automation chain.
+You generate training plans with frontier LLMs (Gemini 3, ChatGPT 5.2), but getting them to your devices is manual and tedious.
 
 ### The Solution
-**Intervals.icu** acts as the bridge. It offers a robust API and automatically syncs workouts to all major platforms.
-
-### The Feedback Loop (The "Coach" Part)
-As illustrated above, this is not just a one-way street. The system is designed to be a **closed loop**:
-1.  **Analyze:** The script retrieves physiological data (HRV, Resting Heart Rate) to assess readiness.
-2.  **Generate:** Gemini creates a specific training session adapted to this state.
-3.  **Execute:** The workout is synced to Garmin/Wahoo/TPV for execution.
-
-## 🛠️ Tech Stack
-
-* **Language:** Python 3.12+
-* **Manager:** [uv](https://github.com/astral-sh/uv) (Blazing fast dependency management)
-* **Linters:** Ruff, Pre-commit, Detect-secrets
-* **APIs:** Intervals.icu, Google Gemini
-
-## 🚀 Installation
+**llm-coach** bridges the gap:
 
 ```
-llm-coach/
-├── .env
-├── .gitignore
-├── Makefile
-├── pyproject.toml
-├── README.md
-├── setup_keys.py
-│
-└── src/
-    └── llm_coach/
-        ├── __init__.py
-        ├── main.py
-        ├── config.py
-        │
-        ├── models/
-        │   ├── __init__.py
-        │   └── workout.py
-        │
-        ├── clients/
-        │   ├── __init__.py
-        │   ├── intervals.py
-        │   └── gemini.py
-        │
-        └── prompts/
-            ├── __init__.py
-            └── coach.py
+Gemini/ChatGPT (plan generation)
+    ↓ (copy JSON to calendar)
+Google Calendar
+    ↓ (automated sync)
+llm-coach CLI → Intervals.icu
+    ↓ (automatic sync)
+Garmin Watch / Wahoo Computer / Smart Trainers
 ```
 
-This project uses a **Makefile** and **uv** to automate the setup.
+**Intervals.icu** acts as the middleware, automatically syncing workouts to all major platforms (TrainingPeaks Virtual, Garmin Connect, Wahoo, etc.).
 
-1.  **Clone the repository:**
+## 🚀 Quick Start
 
-    ```bash
-    git clone https://github.com/nakmuaycoder/llm-coach.git
-    cd llm-coach
-    ```
+### Installation
 
-2.  **Install uv (if needed):**
-    * *Windows:* `powershell -c "irm https://astral.sh/uv/install.ps1 | iex"`
-    * *Mac/Linux:* `curl -LsSf https://astral.sh/uv/install.sh | sh`
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/nakmuaycoder/llm-coach.git
+   cd llm-coach
+   ```
 
-3.  **Run the installation:**
-    This command will install dependencies, setup the virtual environment, and configure git hooks (pre-commit) automatically.
+2. **Install uv (if needed):**
+   - Windows: `powershell -c "irm https://astral.sh/uv/install.ps1 | iex"`
+   - Mac/Linux: `curl -LsSf https://astral.sh/uv/install.sh | sh`
 
-    ```bash
-    make install
-    ```
+3. **Run installation:**
+   ```bash
+   make install
+   ```
 
+### Configuration
 
-## 🧠 Setup: Bootstrapping the Strategy
-
-This agent doesn't just guess; it follows a strict periodization plan. However, writing this plan manually in JSON is tedious and error-prone.
-
-**We use a "Teacher LLM" to generate the system prompts and context for the "Daily Agent".**
-
-1.  **Get the Prompt:** Open [`docs/seasonal_planning_prompt.md`](docs/seasonal_planning_prompt.md).
-2.  **The "Director Sportif" Interview:** * Copy the prompt into a high-reasoning model (ChatGPT o1, Claude 3.5, or Gemini Advanced).
-    * Upload your historical data (Intervals.icu CSV, past injuries, goals).
-    * Debate with the LLM until the strategy fits your life constraints.
-3.  **Generate the Configuration:** Ask the LLM to output the final plan as JSON.
-4.  **Inject the Context:** Save the result to:
-    ```bash
-    src/llm-coach/data/season_plan.json
-    ```
-
-> **Why do this?** This file acts as the "System 2" (Slow Thinking) brain. It ensures the daily Python script ("System 1") doesn't hallucinate a VO2 Max session during a recovery week.
-
-
-## 🔑 Configuration
-
-Security is paramount. We use a .env file to store credentials locally. This file is ignored by Git to prevent accidental leaks.
-1. Gather your Credentials
-
-    Intervals API Key: Go to Settings → Developer Settings on Intervals.icu.
-
-    Athlete ID: Look at the URL of your calendar page (e.g., intervals.icu/athlete/i12345).
-
-    Google API Key: Generate it at Google AI Studio.
-
-2. Run the Setup Script (Recommended)
-
-We provide a utility script to securely generate the configuration file. Run the following command in your terminal (replace the values with your actual keys):
-Bash
+Create a `.env` file with your API keys:
 
 ```bash
-uv run setup_keys.py --intervals_id="i12345" --intervals_key="YOUR_INTERVALS_KEY" --google_key="YOUR_GOOGLE_KEY"
-```
-
-Note: After running this command, it is good practice to clear your terminal history (history -c or Clear-History).
-3. Manual Method (Alternative)
-
-If you prefer not to use the script, simply create a file named .env in the root directory and paste your credentials:
-Ini, TOML
-
+# Required
 INTERVALS_ATHLETE_ID=i12345
 INTERVALS_API_KEY=your_intervals_key_here
 GOOGLE_API_KEY=your_google_key_here
+GOOGLE_CALENDAR_CREDENTIALS_FILE=path/to/credentials.json
+
+# Optional
+PERIODIZATION=3:1  # or "2:1" (default: 3:1)
+```
+
+**Get your credentials:**
+- **Intervals.icu**: Settings → Developer Settings
+- **Google API**: [Google AI Studio](https://aistudio.google.com)
+- **Google Calendar**: [Google Cloud Console](https://console.cloud.google.com)
+
+**Helper script:**
+```bash
+uv run setup_keys.py --intervals_id="i12345" \
+                      --intervals_key="YOUR_KEY" \
+                      --google_key="YOUR_KEY"
+```
+
+### Google Calendar Setup
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com)
+2. Create a new project (or use existing)
+3. Enable **Google Calendar API**
+4. Create OAuth 2.0 credentials (Desktop app)
+5. Download `credentials.json`
+6. Set path in `.env`: `GOOGLE_CALENDAR_CREDENTIALS_FILE=path/to/credentials.json`
+7. First run will open browser for authorization
+
+## 📖 Usage
+
+### Sync Workouts to Devices
+
+**Sync current training block:**
+```bash
+python -m llm_coach sync --block
+```
+Syncs 28 days (3:1 periodization) or 21 days (2:1 periodization) based on your `.env` config.
+
+**Other sync options:**
+```bash
+# This week (7 days)
+python -m llm_coach sync --week
+
+# Today only
+python -m llm_coach sync --today
+
+# Custom number of days
+python -m llm_coach sync --days 14
+
+# Dry run (parse but don't upload)
+python -m llm_coach sync --block --dry-run
+```
+
+### Check Status
+
+```bash
+# Show sync statistics
+python -m llm_coach status
+
+# List all synced workouts
+python -m llm_coach status --list
+```
+
+### Clean Up
+
+```bash
+# Delete all synced workouts from Intervals.icu
+python -m llm_coach clean
+
+# Skip confirmation prompt
+python -m llm_coach clean -y
+
+# Also clear sync database
+python -m llm_coach clean --clear-db
+```
+
+### Help
+
+```bash
+# Show all commands
+python -m llm_coach --help
+
+# Command-specific help
+python -m llm_coach sync --help
+```
+
+## 🔄 Workflow
+
+1. **Generate your training plan** using Gemini 2.0 or ChatGPT o1
+2. **Copy workout JSON** to Google Calendar event descriptions
+3. **Sync to devices**: `python -m llm_coach sync --block`
+4. **Your workouts appear** on Garmin/Wahoo/trainer apps automatically!
+
+## 🛠️ Tech Stack
+
+- **Language:** Python 3.12+
+- **Package Manager:** [uv](https://github.com/astral-sh/uv)
+- **Linters:** Ruff, Pre-commit, Detect-secrets
+- **APIs:** Intervals.icu, Google Calendar, Google Gemini
+- **Architecture:** Provider-agnostic interfaces (swap Google Calendar → Outlook, Gemini → ChatGPT, etc.)
+
+## 📂 Project Structure
+
+```
+llm-coach/
+├── src/llm_coach/
+│   ├── __main__.py          # CLI entry point
+│   ├── cli.py               # CLI commands
+│   ├── config.py            # Configuration
+│   ├── factory.py           # Provider factories
+│   │
+│   ├── interfaces/          # Abstract interfaces
+│   │   ├── workout_source.py
+│   │   ├── calendar.py
+│   │   └── llm.py
+│   │
+│   ├── clients/             # API clients
+│   │   ├── google_calendar.py
+│   │   ├── intervalicu.py
+│   │   ├── gemini.py
+│   │   └── local_llm.py     # Stub for future
+│   │
+│   ├── sources/             # Workout sources
+│   │   └── calendar_source.py
+│   │
+│   ├── services/            # Business logic
+│   │   ├── coach.py
+│   │   └── workout_tracker.py
+│   │
+│   └── models/              # Data models
+│       └── workout.py
+│
+├── data/                    # Sync history database
+├── docs/                    # Documentation
+├── templates/               # Workout templates
+└── tests/                   # Test scripts
+```
+
+## 🎯 Periodization
+
+The CLI supports training periodization patterns:
+
+- **3:1** (default): 28-day blocks (3 weeks load + 1 week recovery)
+- **2:1**: 21-day blocks (2 weeks load + 1 week recovery)
+
+Set in `.env`:
+```env
+PERIODIZATION=3:1
+```
+
+Then sync your entire block:
+```bash
+python -m llm_coach sync --block  # Auto-calculates 21 or 28 days
+```
+
+## 🤝 Contributing
+
+Contributions welcome! The architecture uses provider-agnostic interfaces, making it easy to add:
+
+- **New calendar providers** (Outlook, Apple Calendar)
+- **New LLM providers** (ChatGPT, Claude, local models)
+- **New workout platforms** (TrainingPeaks, Garmin Connect direct)
+
+## 📝 License
+
+MIT License - see LICENSE file for details.
