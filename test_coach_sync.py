@@ -54,7 +54,7 @@ def main():
     # Run sync with selected mode
     # Set dry_run=True to test without actually uploading
     results = coach.sync_from_calendar(
-        max_results=100, sync_mode=sync_mode, dry_run=False
+        max_results=150, sync_mode=sync_mode, dry_run=False
     )
 
     # Clean up deleted calendar events

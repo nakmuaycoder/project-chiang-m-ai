@@ -15,6 +15,8 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel
 
+from llm_coach.interfaces.calendar import CalendarEvent
+
 
 class WorkoutMapping(BaseModel):
     """Maps a calendar event to an Intervals.icu workout"""
@@ -115,7 +117,7 @@ class WorkoutSyncTracker:
 
     def record_sync(
         self,
-        calendar_event: Dict[str, Any],
+        calendar_event: CalendarEvent,
         workout_name: str,
         workout_type: str,
         workout_hash: str,
@@ -127,7 +129,7 @@ class WorkoutSyncTracker:
         Record a workout sync.
 
         Args:
-            calendar_event: Google Calendar event dict
+            calendar_event: CalendarEvent object
             workout_name: Name of the workout
             workout_type: Type (Run, Ride, WeightTraining)
             workout_hash: Hash of workout content
@@ -138,18 +140,11 @@ class WorkoutSyncTracker:
         Returns:
             WorkoutMapping record
         """
-        # Extract calendar event info
-        event_id = calendar_event.get("id", "unknown")
-        event_summary = calendar_event.get("summary", "Unknown")
-        # event_updated = calendar_event.get("updated")  # When event was last modified
-
-        event_start = calendar_event.get("start", {})
-        if "dateTime" in event_start:
-            start_time = event_start["dateTime"]
-        elif "date" in event_start:
-            start_time = event_start["date"]
-        else:
-            start_time = datetime.now().isoformat()
+        # Extract calendar event info from CalendarEvent object
+        event_id = calendar_event.id
+        event_summary = calendar_event.summary
+        # event.start is already a datetime object
+        start_time = calendar_event.start.isoformat()
 
         # Check if this event was already synced
         existing = self.history.find_by_calendar_id(event_id)

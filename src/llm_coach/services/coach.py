@@ -10,6 +10,7 @@ from typing import Any, Dict, List
 
 from llm_coach.clients.google_calendar import GoogleCalendarClient
 from llm_coach.clients.intervalicu import IntervalicuClient
+from llm_coach.interfaces.calendar import CalendarEvent
 from llm_coach.models.workout import Workout
 from llm_coach.services.workout_tracker import WorkoutSyncTracker
 
@@ -69,9 +70,7 @@ class CoachService:
         print(f"✅ Found {len(events)} calendar events")
 
         # Filter for coach events
-        coach_events = [
-            event for event in events if "coach" in event.get("summary", "").lower()
-        ]
+        coach_events = [event for event in events if "coach" in event.summary.lower()]
 
         print(f"   Found {len(coach_events)} coach events (before date filtering)")
 
@@ -88,37 +87,19 @@ class CoachService:
         if sync_mode == "today":
             # Only today's workouts
             for event in coach_events:
-                event_start = event.get("start", {})
-                if "dateTime" in event_start:
-                    from dateutil import parser
-
-                    event_dt = parser.parse(event_start["dateTime"])
-                    if today_start <= event_dt < today_end:
-                        filtered_events.append(event)
-                elif "date" in event_start:
-                    event_date = datetime.strptime(
-                        event_start["date"], "%Y-%m-%d"
-                    ).replace(tzinfo=timezone.utc)
-                    if event_date.date() == now.date():
-                        filtered_events.append(event)
+                # event.start is a datetime object
+                event_dt = event.start
+                if today_start <= event_dt < today_end:
+                    filtered_events.append(event)
 
             print(f"🗓️  Filtered to today's workouts: {len(filtered_events)} events")
         else:
             # All workouts within next 28 days
             for event in coach_events:
-                event_start = event.get("start", {})
-                if "dateTime" in event_start:
-                    from dateutil import parser
-
-                    event_dt = parser.parse(event_start["dateTime"])
-                    if today_start <= event_dt < future_limit:
-                        filtered_events.append(event)
-                elif "date" in event_start:
-                    event_date = datetime.strptime(
-                        event_start["date"], "%Y-%m-%d"
-                    ).replace(tzinfo=timezone.utc)
-                    if today_start.date() <= event_date.date() < future_limit.date():
-                        filtered_events.append(event)
+                # event.start is a datetime object
+                event_dt = event.start
+                if today_start <= event_dt < future_limit:
+                    filtered_events.append(event)
 
             print(f"🗓️  Filtered to next 28 days: {len(filtered_events)} events")
 
@@ -127,7 +108,7 @@ class CoachService:
         # Show filtered events
         if coach_events:
             for event in coach_events:
-                print(f"   ✓ {event['summary']}")
+                print(f"   ✓ {event.summary}")
             print(f"\n🎯 Found {len(coach_events)} coach events to process")
 
         if not coach_events:
@@ -158,7 +139,7 @@ class CoachService:
 
         for idx, event in enumerate(coach_events, 1):
             print(f"\n{'=' * 70}")
-            print(f"Processing event {idx}/{len(coach_events)}: {event['summary']}")
+            print(f"Processing event {idx}/{len(coach_events)}: {event.summary}")
             print(f"{'=' * 70}")
 
             try:
@@ -168,7 +149,7 @@ class CoachService:
                 import hashlib
 
                 # Hash the ENTIRE event description (JSON) for change detection
-                event_description = event.get("description", "")
+                event_description = event.description or ""
                 description_hash = hashlib.md5(
                     event_description.encode("utf-8")
                 ).hexdigest()[:8]
@@ -184,7 +165,7 @@ class CoachService:
 
                 # Check if this event was previously synced and if it has been updated
                 if self.tracker:
-                    event_id = event.get("id")
+                    event_id = event.id
                     existing_mapping = self.tracker.history.find_by_calendar_id(
                         event_id
                     )
@@ -260,7 +241,7 @@ class CoachService:
                         results["failed"] += 1
                         results["errors"].append(
                             {
-                                "event": event["summary"],
+                                "event": event.summary,
                                 "error": upload_result.get("error", "Upload failed"),
                             }
                         )
@@ -278,10 +259,10 @@ class CoachService:
                             )
 
             except Exception as e:
-                print(f"❌ Error processing event '{event['summary']}': {e}")
+                print(f"❌ Error processing event '{event.summary}': {e}")
                 results["failed"] += 1
                 results["success"] = False
-                results["errors"].append({"event": event["summary"], "error": str(e)})
+                results["errors"].append({"event": event.summary, "error": str(e)})
 
         # Print summary
         print(f"\n{'=' * 70}")
@@ -306,7 +287,7 @@ class CoachService:
         return results
 
     def cleanup_deleted_events(
-        self, calendar_events: List[Dict[str, Any]] = None
+        self, calendar_events: List[CalendarEvent] = None
     ) -> Dict[str, Any]:
         """
         Clean up workouts that were deleted from calendar.
@@ -340,7 +321,7 @@ class CoachService:
             calendar_events = self.calendar_client.list_upcoming_events(max_results=100)
 
         # Create set of current calendar event IDs
-        current_event_ids = {event["id"] for event in calendar_events}
+        current_event_ids = {event.id for event in calendar_events}
 
         # Find deleted events (in DB but not in calendar)
         deleted_mappings = []
@@ -391,9 +372,7 @@ class CoachService:
             "errors": errors,
         }
 
-    def _filter_coach_events(
-        self, events: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+    def _filter_coach_events(self, events: List[CalendarEvent]) -> List[CalendarEvent]:
         """
         Filter calendar events for those with 'coach' in the summary.
 
@@ -406,14 +385,14 @@ class CoachService:
         coach_events = []
 
         for event in events:
-            summary = event.get("summary", "").lower()
+            summary = event.summary.lower()
             if "coach" in summary:
                 coach_events.append(event)
-                print(f"   ✓ Found coach event: {event['summary']}")
+                print(f"   ✓ Found coach event: {event.summary}")
 
         return coach_events
 
-    def _parse_workout_from_event(self, event: Dict[str, Any]) -> Workout:
+    def _parse_workout_from_event(self, event: CalendarEvent) -> Workout:
         """
         Parse a workout from a calendar event's description.
 
@@ -430,10 +409,10 @@ class CoachService:
             ValueError: If description is missing or invalid JSON
             Exception: If Workout instantiation fails
         """
-        description = event.get("description", "").strip()
+        description = (event.description or "").strip()
 
         if not description:
-            raise ValueError(f"Event '{event['summary']}' has no description")
+            raise ValueError(f"Event '{event.summary}' has no description")
 
         print("📝 Parsing workout from event description...")
 
@@ -448,12 +427,8 @@ class CoachService:
 
             # If start_date_local not provided, use event start time
             if "start_date_local" not in payload or not payload["start_date_local"]:
-                event_start = event.get("start", {})
-                if "dateTime" in event_start:
-                    payload["start_date_local"] = event_start["dateTime"]
-                elif "date" in event_start:
-                    # All-day event, use date with default time
-                    payload["start_date_local"] = f"{event_start['date']}T00:00:00"
+                # event.start is already a datetime object
+                payload["start_date_local"] = event.start.isoformat()
 
             # Create Workout instance
             workout = Workout(**payload)

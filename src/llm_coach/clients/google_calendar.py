@@ -9,12 +9,13 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
 from llm_coach.config import settings
+from llm_coach.interfaces.calendar import CalendarEvent, ICalendarProvider
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
 
 
-class GoogleCalendarClient:
+class GoogleCalendarClient(ICalendarProvider):
     """
     Client for interacting with the Google Calendar API.
     Handles authentication and event management (list, create, delete).
@@ -83,7 +84,7 @@ class GoogleCalendarClient:
 
     def list_upcoming_events(
         self, max_results: int = 10, calendar_id: str = "primary"
-    ) -> List[Dict[str, Any]]:
+    ) -> List[CalendarEvent]:
         """
         Lists specific upcoming events on the calendar.
 
@@ -92,7 +93,7 @@ class GoogleCalendarClient:
             calendar_id (str): Calendar ID to query. Defaults to 'primary'.
 
         Returns:
-            List[Dict[str, Any]]: A list of event objects.
+            List[CalendarEvent]: A list of CalendarEvent objects.
         """
         try:
             now = datetime.datetime.now(datetime.timezone.utc).isoformat()
@@ -107,12 +108,41 @@ class GoogleCalendarClient:
                 )
                 .execute()
             )
-            events = events_result.get("items", [])
-            return events
+            raw_events = events_result.get("items", [])
+
+            # Convert to CalendarEvent objects
+            calendar_events = []
+            for event in raw_events:
+                calendar_events.append(self._to_calendar_event(event))
+
+            return calendar_events
 
         except HttpError as error:
             print(f"An error occurred: {error}")
             return []
+
+    def _to_calendar_event(self, google_event: Dict[str, Any]) -> CalendarEvent:
+        """Convert Google Calendar event to CalendarEvent object."""
+        # Parse start/end times
+        start_str = google_event.get("start", {}).get("dateTime") or google_event.get(
+            "start", {}
+        ).get("date")
+        end_str = google_event.get("end", {}).get("dateTime") or google_event.get(
+            "end", {}
+        ).get("date")
+
+        # Parse to datetime objects
+        start_dt = datetime.datetime.fromisoformat(start_str.replace("Z", "+00:00"))
+        end_dt = datetime.datetime.fromisoformat(end_str.replace("Z", "+00:00"))
+
+        return CalendarEvent(
+            id=google_event.get("id", ""),
+            summary=google_event.get("summary", ""),
+            description=google_event.get("description"),
+            start=start_dt,
+            end=end_dt,
+            raw_data=google_event,
+        )
 
     def create_event(
         self,
@@ -122,7 +152,7 @@ class GoogleCalendarClient:
         description: Optional[str] = None,
         location: Optional[str] = None,
         calendar_id: str = "primary",
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[CalendarEvent]:
         """
         Creates a new event in the calendar.
 
@@ -137,7 +167,8 @@ class GoogleCalendarClient:
             calendar_id (str): Calendar ID to add event to. Defaults to 'primary'.
 
         Returns:
-            Optional[Dict[str, Any]]: The created event object, or None if failed.
+            Optional[CalendarEvent]: The created CalendarEvent object,
+                or None if failed.
         """
 
         # Helper to convert datetime to ISO string if needed
@@ -164,13 +195,13 @@ class GoogleCalendarClient:
         }
 
         try:
-            event = (
+            created_event = (
                 self.service.events()
                 .insert(calendarId=calendar_id, body=event)
                 .execute()
             )
-            print(f"Event created: {event.get('htmlLink')}")
-            return event
+            print(f"Event created: {created_event.get('htmlLink')}")
+            return self._to_calendar_event(created_event)
         except HttpError as error:
             print(f"An error occurred: {error}")
             return None
