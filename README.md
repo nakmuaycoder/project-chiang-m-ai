@@ -68,12 +68,16 @@ PERIODIZATION=3:1  # or "2:1" (default: 3:1)
 - **Google API**: [Google AI Studio](https://aistudio.google.com)
 - **Google Calendar**: [Google Cloud Console](https://console.cloud.google.com)
 
-**Helper script:**
+**Quick setup with script:**
 ```bash
 uv run setup_keys.py --intervals_id="i12345" \
                       --intervals_key="YOUR_KEY" \
-                      --google_key="YOUR_KEY"
+                      --google_key="YOUR_KEY" \
+                      --calendar_creds="path/to/credentials.json" \
+                      --periodization="3:1"
 ```
+
+**Or copy `.env.example` to `.env` and fill in your values.**
 
 ### Google Calendar Setup
 

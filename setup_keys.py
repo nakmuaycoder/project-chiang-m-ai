@@ -27,6 +27,24 @@ def main() -> None:
     parser.add_argument(
         "--google_key", required=True, help="Your Google Gemini API Key"
     )
+    parser.add_argument(
+        "--calendar_creds",
+        required=False,
+        default="credentials.json",
+        help=(
+            "Path to Google Calendar OAuth credentials file (default: credentials.json)"
+        ),
+    )
+    parser.add_argument(
+        "--periodization",
+        required=False,
+        default="3:1",
+        choices=["2:1", "3:1"],
+        help=(
+            "Training periodization pattern: 3:1 (28 days) or 2:1 (21 days) "
+            "[default: 3:1]"
+        ),
+    )
 
     args = parser.parse_args()
 
@@ -37,6 +55,8 @@ def main() -> None:
         f"INTERVALS_ATHLETE_ID={args.intervals_id}\n"
         f"INTERVALS_API_KEY={args.intervals_key}\n"
         f"GOOGLE_API_KEY={args.google_key}\n"
+        f"GOOGLE_CALENDAR_CREDENTIALS_FILE={args.calendar_creds}\n"
+        f"PERIODIZATION={args.periodization}\n"
     )
 
     # Write the file
