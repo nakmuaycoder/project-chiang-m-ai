@@ -216,11 +216,82 @@ class CoachService:
                 if dry_run:
                     print(f"🔍 DRY RUN: Would upload workout: {workout.name}")
                     print(f"   Type: {workout.type}")
-                    print(f"   Duration: {workout.moving_time}s")
+                    if hasattr(workout, "moving_time"):
+                        print(f"   Duration: {workout.moving_time}s")
                     results["uploaded"] += 1
                 else:
-                    # Upload to Intervals.icu
-                    upload_result = self.intervalicu_client.upload_workout(workout)
+                    # Check if this is a strength workout
+                    from llm_coach.models.strength_workout import StrengthWorkout
+
+                    if isinstance(workout, StrengthWorkout):
+                        # Upload strength workout as text description
+                        import base64
+                        import re
+
+                        import requests
+
+                        from llm_coach.config import settings
+
+                        # Strip timezone from date (Intervals.icu doesn't accept it)
+                        start_date = workout.start_date_local
+                        if start_date:
+                            match = re.match(
+                                r"(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})", start_date
+                            )
+                            if match:
+                                start_date = match.group(1)
+
+                        payload = {
+                            "name": workout.name,
+                            "start_date_local": start_date,
+                            "category": workout.category,
+                            "type": "WeightTraining",  # Force to WeightTraining
+                            "description": workout.to_intervals_description(),
+                        }
+
+                        if workout.color:
+                            payload["color"] = workout.color
+
+                        # Encode API key
+                        api_key = settings.INTERVALS_API_KEY.get_secret_value()
+                        token = f"API_KEY:{api_key}".encode("utf-8")
+                        auth_token = base64.b64encode(token).decode("utf-8")
+
+                        headers = {
+                            "Authorization": f"Basic {auth_token}",
+                            "Content-Type": "application/json",
+                        }
+
+                        athlete_id = settings.INTERVALS_ATHLETE_ID
+                        url = (
+                            f"https://intervals.icu/api/v1/athlete/{athlete_id}/events"
+                        )
+
+                        print(f"\n📝 Uploading strength workout: {workout.name}")
+                        print(f"⬆️  Uploading to {url}")
+
+                        try:
+                            response = requests.post(url, headers=headers, json=payload)
+                            response.raise_for_status()
+                            result = response.json()
+                            workout_id = result.get("id")
+
+                            print("✅ Successfully uploaded strength workout!")
+                            print(f"   Intervals.icu ID: {workout_id}")
+
+                            upload_result = {"success": True, "workout_id": workout_id}
+                        except requests.exceptions.HTTPError as e:
+                            error_msg = f"{e}"
+                            if hasattr(e, "response") and e.response is not None:
+                                error_msg += f"\n   Response: {e.response.text}"
+                            print(f"❌ Upload failed: {error_msg}")
+                            upload_result = {"success": False, "error": error_msg}
+                        except Exception as e:
+                            print(f"❌ Upload failed: {e}")
+                            upload_result = {"success": False, "error": str(e)}
+                    else:
+                        # Upload regular Run/Ride workout
+                        upload_result = self.intervalicu_client.upload_workout(workout)
 
                     if upload_result.get("success"):
                         results["uploaded"] += 1
@@ -430,15 +501,18 @@ class CoachService:
                 # event.start is already a datetime object
                 payload["start_date_local"] = event.start.isoformat()
 
-            # Create Workout instance
+            # Create Workout instance (handles Run/Ride/Strength)
             workout = Workout(**payload)
 
             print(f"✅ Successfully parsed workout: {workout.name}")
             print(f"   Type: {workout.type}")
-            print(
-                f"   Duration: {workout.moving_time}s ({workout.moving_time // 60}min)"
-            )
-            print(f"   Blocks: {len(workout.steps)}")
+            if hasattr(workout, "moving_time"):
+                print(
+                    f"   Duration: {workout.moving_time}s "
+                    f"({workout.moving_time // 60}min)"
+                )
+            if hasattr(workout, "steps"):
+                print(f"   Blocks: {len(workout.steps)}")
 
             return workout
 

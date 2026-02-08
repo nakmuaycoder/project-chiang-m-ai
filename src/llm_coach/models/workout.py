@@ -11,6 +11,8 @@ from pydantic import (
     model_validator,
 )
 
+from llm_coach.models.strength_workout import StrengthWorkout
+
 
 class ZoneDefinition(BaseModel):
     """
@@ -287,7 +289,9 @@ class RideWorkout(BaseWorkout):
 
 
 # Define the discriminated union type
-WorkoutUnion = Annotated[Union[RunWorkout, RideWorkout], Field(discriminator="type")]
+WorkoutUnion = Annotated[
+    Union[RunWorkout, RideWorkout, StrengthWorkout], Field(discriminator="type")
+]
 
 # Create TypeAdapter for validation
 _workout_adapter = TypeAdapter(WorkoutUnion)
