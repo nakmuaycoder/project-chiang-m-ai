@@ -13,7 +13,6 @@ license = { text = "MIT" }
 dependencies = [
     "requests>=2.32.0",          # Pour parler à l'API Intervals.icu
     "python-dotenv>=1.0.1",      # Pour gérer les clés API via un fichier .env
-    "google-generativeai>=0.8.0",
     "pydantic>=2.12.5",
     "pydantic-settings>=2.12.0",
     "google-api-python-client>=2.188.0",

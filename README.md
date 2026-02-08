@@ -56,7 +56,6 @@ Create a `.env` file with your API keys:
 # Required
 INTERVALS_ATHLETE_ID=i12345
 INTERVALS_API_KEY=your_intervals_key_here
-GOOGLE_API_KEY=your_google_key_here
 GOOGLE_CALENDAR_CREDENTIALS_FILE=path/to/credentials.json
 
 # Optional
@@ -65,14 +64,12 @@ PERIODIZATION=3:1  # or "2:1" (default: 3:1)
 
 **Get your credentials:**
 - **Intervals.icu**: Settings → Developer Settings
-- **Google API**: [Google AI Studio](https://aistudio.google.com)
 - **Google Calendar**: [Google Cloud Console](https://console.cloud.google.com)
 
 **Quick setup with script:**
 ```bash
 uv run setup_keys.py --intervals_id="i12345" \
                       --intervals_key="YOUR_KEY" \
-                      --google_key="YOUR_KEY" \
                       --calendar_creds="path/to/credentials.json" \
                       --periodization="3:1"
 ```

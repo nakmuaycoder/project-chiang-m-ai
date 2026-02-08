@@ -25,9 +25,6 @@ def main() -> None:
         "--intervals_key", required=True, help="Your Intervals.icu API Key"
     )
     parser.add_argument(
-        "--google_key", required=True, help="Your Google Gemini API Key"
-    )
-    parser.add_argument(
         "--calendar_creds",
         required=False,
         default="credentials.json",
@@ -54,7 +51,6 @@ def main() -> None:
     env_content = (
         f"INTERVALS_ATHLETE_ID={args.intervals_id}\n"
         f"INTERVALS_API_KEY={args.intervals_key}\n"
-        f"GOOGLE_API_KEY={args.google_key}\n"
         f"GOOGLE_CALENDAR_CREDENTIALS_FILE={args.calendar_creds}\n"
         f"PERIODIZATION={args.periodization}\n"
     )
