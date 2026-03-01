@@ -301,5 +301,27 @@ _workout_adapter = TypeAdapter(WorkoutUnion)
 def Workout(**data):
     """
     Factory function to create the appropriate Workout subclass based on 'type' field.
+    If 'type' is missing, it attempts to infer it from the 'name' or 'description'.
     """
+    if "type" not in data:
+        # Infer type from name or description
+        text_to_search = (
+            str(data.get("name", "")).lower()
+            + " "
+            + str(data.get("description", "")).lower()
+        )
+
+        # Use regex to match whole words and prevent "strides" matching "ride"
+        if re.search(r"\b(musculation|strength|weight|renfo|core)\b", text_to_search):
+            data["type"] = "WeightTraining"
+        elif re.search(
+            r"\b(v[eé]lo|ride|bike|cyclisme|home trainer)\b", text_to_search
+        ):
+            data["type"] = "Ride"
+        elif re.search(r"\b(trail|cap|course|run|footing|jogging)\b", text_to_search):
+            data["type"] = "Run"
+        else:
+            # Default fallback if we really can't guess
+            data["type"] = "Run"
+
     return _workout_adapter.validate_python(data)
