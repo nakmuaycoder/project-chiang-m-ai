@@ -11,6 +11,7 @@ from typing import Any, Dict, List
 from llm_coach.clients.google_calendar import GoogleCalendarClient
 from llm_coach.clients.intervalicu import IntervalicuClient
 from llm_coach.interfaces.calendar import CalendarEvent
+from llm_coach.logger import logger
 from llm_coach.models.workout import Workout
 from llm_coach.services.workout_tracker import WorkoutSyncTracker
 
@@ -59,20 +60,22 @@ class CoachService:
         """
         from datetime import datetime, timedelta, timezone
 
-        print("=" * 70)
-        print("🏋️  Starting workout sync from Google Calendar to Intervals.icu")
-        print("=" * 70)
-        print()
+        logger.info("=" * 70)
+        logger.info("🏋️  Starting workout sync from Google Calendar to Intervals.icu")
+        logger.info("=" * 70)
+        logger.info("")
 
         # Fetch events from Google Calendar
-        print(f"📅 Fetching up to {max_results} upcoming events...")
+        logger.info(f"📅 Fetching up to {max_results} upcoming events...")
         events = self.calendar_client.list_upcoming_events(max_results=max_results)
-        print(f"✅ Found {len(events)} calendar events")
+        logger.info(f"✅ Found {len(events)} calendar events")
 
         # Filter for coach events
         coach_events = [event for event in events if "coach" in event.summary.lower()]
 
-        print(f"   Found {len(coach_events)} coach events (before date filtering)")
+        logger.info(
+            f"   Found {len(coach_events)} coach events (before date filtering)"
+        )
 
         # Calculate date ranges
         now = datetime.now(timezone.utc)
@@ -92,7 +95,9 @@ class CoachService:
                 if today_start <= event_dt < today_end:
                     filtered_events.append(event)
 
-            print(f"🗓️  Filtered to today's workouts: {len(filtered_events)} events")
+            logger.info(
+                f"🗓️  Filtered to today's workouts: {len(filtered_events)} events"
+            )
         else:
             # All workouts within next 28 days
             for event in coach_events:
@@ -101,18 +106,18 @@ class CoachService:
                 if today_start <= event_dt < future_limit:
                     filtered_events.append(event)
 
-            print(f"🗓️  Filtered to next 28 days: {len(filtered_events)} events")
+            logger.info(f"🗓️  Filtered to next 28 days: {len(filtered_events)} events")
 
         coach_events = filtered_events
 
         # Show filtered events
         if coach_events:
             for event in coach_events:
-                print(f"   ✓ {event.summary}")
-            print(f"\n🎯 Found {len(coach_events)} coach events to process")
+                logger.info(f"   ✓ {event.summary}")
+            logger.info(f"\n🎯 Found {len(coach_events)} coach events to process")
 
         if not coach_events:
-            print("⚠️  No coach events found in the selected timeframe")
+            logger.warning("⚠️  No coach events found in the selected timeframe")
             return {
                 "success": True,
                 "processed": 0,
@@ -138,9 +143,9 @@ class CoachService:
         uploaded_signatures = set()
 
         for idx, event in enumerate(coach_events, 1):
-            print(f"\n{'=' * 70}")
-            print(f"Processing event {idx}/{len(coach_events)}: {event.summary}")
-            print(f"{'=' * 70}")
+            logger.info(f"\n{'=' * 70}")
+            logger.info(f"Processing event {idx}/{len(coach_events)}: {event.summary}")
+            logger.info(f"{'=' * 70}")
 
             try:
                 workout = self._parse_workout_from_event(event)
@@ -173,40 +178,42 @@ class CoachService:
                     if existing_mapping:
                         # Primary detection: Compare workout content hash
                         if existing_mapping.workout_hash != description_hash:
-                            print("🔄 Workout content has changed!")
-                            print(f"   Old hash: {existing_mapping.workout_hash}")
-                            print(f"   New hash: {description_hash}")
+                            logger.info("🔄 Workout content has changed!")
+                            logger.info(f"   Old hash: {existing_mapping.workout_hash}")
+                            logger.info(f"   New hash: {description_hash}")
 
                             # Delete the old workout from Intervals.icu
                             if existing_mapping.intervalicu_id:
                                 workout_id = existing_mapping.intervalicu_id
-                                print(
+                                logger.info(
                                     f"   🗑️  Deleting old workout (ID: {workout_id})..."
                                 )
                                 delete_result = self.intervalicu_client.delete_workout(
                                     existing_mapping.intervalicu_id
                                 )
                                 if delete_result.get("success"):
-                                    print("   ✅ Deleted old workout")
+                                    logger.info("   ✅ Deleted old workout")
                                 else:
                                     error_message = delete_result.get("error")
                                     error_message = (
                                         "   ⚠️  Failed to delete old workout: {}"
                                     )
-                                    print(error_message.format(error_message))
+                                    logger.info(error_message.format(error_message))
 
                             # Continue to upload new version
                         else:
                             # Content unchanged - skip
-                            print(f"⏭️  Skipping unchanged workout: '{workout.name}'")
-                            print("   Content hash matches - no changes detected")
+                            logger.info(
+                                f"⏭️  Skipping unchanged workout: '{workout.name}'"
+                            )
+                            logger.info("   Content hash matches - no changes detected")
                             results["processed"] -= 1
                             continue
 
                 # Check for duplicate
                 if workout_signature in uploaded_signatures:
-                    print(f"⏭️  Skipping duplicate workout: '{workout.name}'")
-                    print("   Already processed in this sync session")
+                    logger.info(f"⏭️  Skipping duplicate workout: '{workout.name}'")
+                    logger.info("   Already processed in this sync session")
                     results["processed"] -= 1
                     continue
 
@@ -214,10 +221,10 @@ class CoachService:
                 uploaded_signatures.add(workout_signature)
 
                 if dry_run:
-                    print(f"🔍 DRY RUN: Would upload workout: {workout.name}")
-                    print(f"   Type: {workout.type}")
+                    logger.info(f"🔍 DRY RUN: Would upload workout: {workout.name}")
+                    logger.info(f"   Type: {workout.type}")
                     if hasattr(workout, "moving_time"):
-                        print(f"   Duration: {workout.moving_time}s")
+                        logger.info(f"   Duration: {workout.moving_time}s")
                     results["uploaded"] += 1
                 else:
                     # Check if this is a strength workout
@@ -267,8 +274,8 @@ class CoachService:
                             f"https://intervals.icu/api/v1/athlete/{athlete_id}/events"
                         )
 
-                        print(f"\n📝 Uploading strength workout: {workout.name}")
-                        print(f"⬆️  Uploading to {url}")
+                        logger.info(f"\n📝 Uploading strength workout: {workout.name}")
+                        logger.info(f"⬆️  Uploading to {url}")
 
                         try:
                             response = requests.post(url, headers=headers, json=payload)
@@ -276,18 +283,18 @@ class CoachService:
                             result = response.json()
                             workout_id = result.get("id")
 
-                            print("✅ Successfully uploaded strength workout!")
-                            print(f"   Intervals.icu ID: {workout_id}")
+                            logger.info("✅ Successfully uploaded strength workout!")
+                            logger.info(f"   Intervals.icu ID: {workout_id}")
 
                             upload_result = {"success": True, "workout_id": workout_id}
                         except requests.exceptions.HTTPError as e:
                             error_msg = f"{e}"
                             if hasattr(e, "response") and e.response is not None:
                                 error_msg += f"\n   Response: {e.response.text}"
-                            print(f"❌ Upload failed: {error_msg}")
+                            logger.error(f"❌ Upload failed: {error_msg}")
                             upload_result = {"success": False, "error": error_msg}
                         except Exception as e:
-                            print(f"❌ Upload failed: {e}")
+                            logger.error(f"❌ Upload failed: {e}")
                             upload_result = {"success": False, "error": str(e)}
                     else:
                         # Upload regular Run/Ride workout
@@ -330,26 +337,26 @@ class CoachService:
                             )
 
             except Exception as e:
-                print(f"❌ Error processing event '{event.summary}': {e}")
+                logger.error(f"❌ Error processing event '{event.summary}': {e}")
                 results["failed"] += 1
                 results["success"] = False
                 results["errors"].append({"event": event.summary, "error": str(e)})
 
         # Print summary
-        print(f"\n{'=' * 70}")
-        print("📊 SYNC SUMMARY")
-        print(f"{'=' * 70}")
-        print(f"Total events processed: {results['processed']}")
-        print(f"✅ Successfully uploaded: {results['uploaded']}")
-        print(f"❌ Failed: {results['failed']}")
+        logger.info(f"\n{'=' * 70}")
+        logger.info("📊 SYNC SUMMARY")
+        logger.info(f"{'=' * 70}")
+        logger.info(f"Total events processed: {results['processed']}")
+        logger.info(f"✅ Successfully uploaded: {results['uploaded']}")
+        logger.error(f"❌ Failed: {results['failed']}")
 
         if results["errors"]:
-            print("\n⚠️  Errors encountered:")
+            logger.warning("\n⚠️  Errors encountered:")
             for error in results["errors"]:
-                print(f"   - {error['event']}: {error['error']}")
+                logger.info(f"   - {error['event']}: {error['error']}")
 
-        print(f"{'=' * 70}\n")
-        print(f"{'=' * 70}\n")
+        logger.info(f"{'=' * 70}\n")
+        logger.info(f"{'=' * 70}\n")
 
         # Print tracker stats if enabled
         if self.tracker:
@@ -379,7 +386,7 @@ class CoachService:
             }
         """
         if not self.tracker:
-            print("⚠️  Tracking not enabled - cannot clean up deleted events")
+            logger.warning("⚠️  Tracking not enabled - cannot clean up deleted events")
             return {
                 "success": False,
                 "deleted": 0,
@@ -403,14 +410,14 @@ class CoachService:
         if not deleted_mappings:
             return {"success": True, "deleted": 0, "failed": 0, "errors": []}
 
-        print(f"\n🗑️  Found {len(deleted_mappings)} deleted calendar event(s)")
+        logger.info(f"\n🗑️  Found {len(deleted_mappings)} deleted calendar event(s)")
 
         deleted_count = 0
         failed_count = 0
         errors = []
 
         for mapping in deleted_mappings:
-            print(f"   • {mapping.calendar_event_summary}")
+            logger.info(f"   • {mapping.calendar_event_summary}")
 
             # Delete from Intervals.icu if ID exists
             if mapping.intervalicu_id:
@@ -419,22 +426,24 @@ class CoachService:
                 )
 
                 if delete_result.get("success"):
-                    print("     ✅ Deleted from Intervals.icu")
+                    logger.info("     ✅ Deleted from Intervals.icu")
                     deleted_count += 1
                 else:
                     error_msg = delete_result.get("error", "Unknown error")
-                    print(f"     ⚠️  Failed: {error_msg}")
+                    logger.error(f"     ⚠️  Failed: {error_msg}")
                     failed_count += 1
                     errors.append(f"{mapping.calendar_event_summary}: {error_msg}")
 
             # Remove from database
             self.tracker.history.mappings.remove(mapping)
-            print("     ✅ Removed from database")
+            logger.info("     ✅ Removed from database")
 
         # Save updated database
         self.tracker._save_history()
 
-        print(f"\n✅ Cleanup complete: {deleted_count} deleted, {failed_count} failed")
+        logger.info(
+            f"\n✅ Cleanup complete: {deleted_count} deleted, {failed_count} failed"
+        )
 
         return {
             "success": failed_count == 0,
@@ -459,7 +468,7 @@ class CoachService:
             summary = event.summary.lower()
             if "coach" in summary:
                 coach_events.append(event)
-                print(f"   ✓ Found coach event: {event.summary}")
+                logger.info(f"   ✓ Found coach event: {event.summary}")
 
         return coach_events
 
@@ -485,7 +494,7 @@ class CoachService:
         if not description:
             raise ValueError(f"Event '{event.summary}' has no description")
 
-        print("📝 Parsing workout from event description...")
+        logger.info("📝 Parsing workout from event description...")
 
         try:
             # Decode HTML entities (Google Calendar may escape quotes as &quot;)
@@ -504,15 +513,15 @@ class CoachService:
             # Create Workout instance (handles Run/Ride/Strength)
             workout = Workout(**payload)
 
-            print(f"✅ Successfully parsed workout: {workout.name}")
-            print(f"   Type: {workout.type}")
+            logger.info(f"✅ Successfully parsed workout: {workout.name}")
+            logger.info(f"   Type: {workout.type}")
             if hasattr(workout, "moving_time"):
-                print(
+                logger.info(
                     f"   Duration: {workout.moving_time}s "
                     f"({workout.moving_time // 60}min)"
                 )
             if hasattr(workout, "steps"):
-                print(f"   Blocks: {len(workout.steps)}")
+                logger.info(f"   Blocks: {len(workout.steps)}")
 
             return workout
 
@@ -535,7 +544,7 @@ if __name__ == "__main__":
     Usage:
         python -m llm_coach.services.coach
     """
-    print("🏋️  LLM Coach - Calendar to Intervals.icu Sync\n")
+    logger.info("🏋️  LLM Coach - Calendar to Intervals.icu Sync\n")
 
     coach_service = CoachService()
 

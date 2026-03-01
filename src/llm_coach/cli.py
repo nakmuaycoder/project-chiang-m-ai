@@ -9,6 +9,7 @@ import argparse
 import sys
 
 from llm_coach.config import settings
+from llm_coach.logger import logger
 from llm_coach.services.coach import CoachService
 
 
@@ -19,44 +20,50 @@ def calculate_block_days(periodization: str) -> int:
     elif periodization == "3:1":
         return 28  # 3 weeks on + 1 week recovery
     else:
-        print(f"⚠️  Unknown periodization: {periodization}, defaulting to 28 days")
+        logger.warning(
+            f"⚠️  Unknown periodization: {periodization}, defaulting to 28 days"
+        )
         return 28
 
 
 def cmd_sync(args):
     """Sync workouts from Google Calendar to Intervals.icu."""
-    print("=" * 70)
-    print("🔄 LLM Coach - Sync Workouts")
-    print("=" * 70)
-    print()
+    logger.info("=" * 70)
+    logger.info("🔄 LLM Coach - Sync Workouts")
+    logger.info("=" * 70)
+    logger.info("")
 
     # Determine sync mode and days
     if args.block:
         days = calculate_block_days(settings.PERIODIZATION)
         mode = "all"
-        print(f"📅 Syncing training block ({settings.PERIODIZATION} = {days} days)")
+        logger.info(
+            f"📅 Syncing training block ({settings.PERIODIZATION} = {days} days)"
+        )
     elif args.week:
         days = 7
         mode = "all"
-        print("📅 Syncing this week (7 days)")
+        logger.info("📅 Syncing this week (7 days)")
     elif args.today:
         days = 1
         mode = "today"
-        print("📅 Syncing today's workouts")
+        logger.info("📅 Syncing today's workouts")
     elif args.days:
         days = args.days
         mode = "all"
-        print(f"📅 Syncing next {days} days")
+        logger.info(f"📅 Syncing next {days} days")
     else:
         # Default: block
         days = calculate_block_days(settings.PERIODIZATION)
         mode = "all"
-        print(f"📅 Syncing training block ({settings.PERIODIZATION} = {days} days)")
+        logger.info(
+            f"📅 Syncing training block ({settings.PERIODIZATION} = {days} days)"
+        )
 
     if args.dry_run:
-        print("🔍 DRY RUN MODE - No workouts will be uploaded")
+        logger.info("🔍 DRY RUN MODE - No workouts will be uploaded")
 
-    print()
+    logger.info("")
 
     # Initialize coach service
     coach = CoachService(enable_tracking=True)
@@ -68,12 +75,12 @@ def cmd_sync(args):
     )
 
     # Summary
-    print()
+    logger.info("")
     if results["failed"] == 0:
-        print("✅ Sync completed successfully!")
+        logger.info("✅ Sync completed successfully!")
         sys.exit(0)
     else:
-        print("⚠️  Sync completed with errors")
+        logger.warning("⚠️  Sync completed with errors")
         sys.exit(1)
 
 
@@ -84,25 +91,25 @@ def cmd_clean(args):
     tracker = WorkoutSyncTracker()
     stats = tracker.get_stats()
 
-    print("=" * 70)
-    print("🗑️  Clean Synced Workouts")
-    print("=" * 70)
-    print()
+    logger.info("=" * 70)
+    logger.info("🗑️  Clean Synced Workouts")
+    logger.info("=" * 70)
+    logger.info("")
 
     if stats["total_synced"] == 0:
-        print("📭 No synced workouts found")
+        logger.info("📭 No synced workouts found")
         sys.exit(0)
 
-    print(f"Found {stats['total_synced']} synced workout(s)")
-    print()
-    print("⚠️  WARNING: This will delete workouts from Intervals.icu")
-    print("   Calendar events will NOT be deleted")
-    print()
+    logger.info(f"Found {stats['total_synced']} synced workout(s)")
+    logger.info("")
+    logger.warning("⚠️  WARNING: This will delete workouts from Intervals.icu")
+    logger.info("   Calendar events will NOT be deleted")
+    logger.info("")
 
     if not args.yes:
         response = input("Delete all synced workouts? (yes/NO): ").strip().lower()
         if response != "yes":
-            print("❌ Cancelled")
+            logger.error("❌ Cancelled")
             sys.exit(0)
 
     # Delete workouts
@@ -112,11 +119,11 @@ def cmd_clean(args):
     deleted = 0
     failed = 0
 
-    print()
-    print("🗑️  Deleting workouts...")
+    logger.info("")
+    logger.info("🗑️  Deleting workouts...")
     for idx, mapping in enumerate(tracker.history.mappings, 1):
         if mapping.intervalicu_id:
-            print(
+            logger.info(
                 f"{idx}/{stats['total_synced']} - Deleting: "
                 f"{mapping.intervalicu_name} (ID: {mapping.intervalicu_id})"
             )
@@ -125,19 +132,19 @@ def cmd_clean(args):
                 deleted += 1
             else:
                 failed += 1
-                print(f"   ⚠️  Failed: {result.get('error')}")
+                logger.error(f"   ⚠️  Failed: {result.get('error')}")
 
     # Clear database
     if args.clear_db:
         tracker.history.mappings = []
         tracker._save_history()
-        print()
-        print("✅ Database cleared")
+        logger.info("")
+        logger.info("✅ Database cleared")
 
-    print()
-    print("=" * 70)
-    print(f"✅ Deleted: {deleted}, ❌ Failed: {failed}")
-    print("=" * 70)
+    logger.info("")
+    logger.info("=" * 70)
+    logger.error(f"✅ Deleted: {deleted}, ❌ Failed: {failed}")
+    logger.info("=" * 70)
 
 
 def cmd_status(args):
@@ -147,19 +154,19 @@ def cmd_status(args):
     tracker = WorkoutSyncTracker()
     stats = tracker.get_stats()
 
-    print("=" * 70)
-    print("📊 LLM Coach - Status")
-    print("=" * 70)
-    print()
-    print(f"Training periodization: {settings.PERIODIZATION}")
-    print(f"Block duration: {calculate_block_days(settings.PERIODIZATION)} days")
-    print()
+    logger.info("=" * 70)
+    logger.info("📊 LLM Coach - Status")
+    logger.info("=" * 70)
+    logger.info("")
+    logger.info(f"Training periodization: {settings.PERIODIZATION}")
+    logger.info(f"Block duration: {calculate_block_days(settings.PERIODIZATION)} days")
+    logger.info("")
     tracker.print_stats()
 
     if args.list and stats["total_synced"] > 0:
-        print()
-        print("📋 Synced Workouts:")
-        print("-" * 70)
+        logger.info("")
+        logger.info("📋 Synced Workouts:")
+        logger.info("-" * 70)
         for mapping in tracker.history.mappings:
             status_emoji = {
                 "uploaded": "✅",
@@ -168,13 +175,13 @@ def cmd_status(args):
                 "deleted": "🗑️",
             }.get(mapping.status, "❓")
 
-            print(
+            logger.info(
                 f"{status_emoji} {mapping.calendar_event_summary} "
                 f"→ {mapping.intervalicu_name} (ID: {mapping.intervalicu_id})"
             )
-            print(f"   Date: {mapping.calendar_event_start}")
-            print(f"   Synced: {mapping.synced_at[:10]}")
-            print()
+            logger.info(f"   Date: {mapping.calendar_event_start}")
+            logger.info(f"   Synced: {mapping.synced_at[:10]}")
+            logger.info("")
 
 
 def main():

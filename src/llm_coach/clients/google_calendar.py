@@ -10,6 +10,7 @@ from googleapiclient.errors import HttpError
 
 from llm_coach.config import settings
 from llm_coach.interfaces.calendar import CalendarEvent, ICalendarProvider
+from llm_coach.logger import logger
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
@@ -57,7 +58,7 @@ class GoogleCalendarClient(ICalendarProvider):
                 try:
                     self.creds.refresh(Request())
                 except Exception as e:
-                    print(f"Error refreshing token: {e}")
+                    logger.error(f"Error refreshing token: {e}")
                     self.creds = None
 
             if not self.creds:
@@ -118,7 +119,7 @@ class GoogleCalendarClient(ICalendarProvider):
             return calendar_events
 
         except HttpError as error:
-            print(f"An error occurred: {error}")
+            logger.error(f"An error occurred: {error}")
             return []
 
     def _to_calendar_event(self, google_event: Dict[str, Any]) -> CalendarEvent:
@@ -200,10 +201,10 @@ class GoogleCalendarClient(ICalendarProvider):
                 .insert(calendarId=calendar_id, body=event)
                 .execute()
             )
-            print(f"Event created: {created_event.get('htmlLink')}")
+            logger.info(f"Event created: {created_event.get('htmlLink')}")
             return self._to_calendar_event(created_event)
         except HttpError as error:
-            print(f"An error occurred: {error}")
+            logger.error(f"An error occurred: {error}")
             return None
 
     def delete_event(self, event_id: str, calendar_id: str = "primary") -> bool:
@@ -221,8 +222,8 @@ class GoogleCalendarClient(ICalendarProvider):
             self.service.events().delete(
                 calendarId=calendar_id, eventId=event_id
             ).execute()
-            print(f"Event deleted: {event_id}")
+            logger.info(f"Event deleted: {event_id}")
             return True
         except HttpError as error:
-            print(f"An error occurred: {error}")
+            logger.error(f"An error occurred: {error}")
             return False

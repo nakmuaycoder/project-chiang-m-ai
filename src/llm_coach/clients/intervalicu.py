@@ -9,6 +9,7 @@ import base64
 import requests
 
 from llm_coach.config import settings
+from llm_coach.logger import logger
 from llm_coach.models.workout import Workout
 
 BASE_URL = "https://intervals.icu/api/v1/athlete"
@@ -137,12 +138,12 @@ class IntervalicuClient:
             if workout.color:
                 event_payload["color"] = workout.color
 
-            print(f"\n📝 Uploading: {workout.name}")
-            print("   Format: Intervals.icu native")
-            print(f"   Duration: {workout.moving_time}s")
-            print("\nWorkout structure:")
-            print(workout_description)
-            print(f"\n⬆️  Uploading to {url}")
+            logger.info(f"\n📝 Uploading: {workout.name}")
+            logger.info("   Format: Intervals.icu native")
+            logger.info(f"   Duration: {workout.moving_time}s")
+            logger.info("\nWorkout structure:")
+            logger.info(workout_description)
+            logger.info(f"\n⬆️  Uploading to {url}")
 
             response = requests.post(url, headers=headers, json=event_payload)
             response.raise_for_status()
@@ -151,20 +152,20 @@ class IntervalicuClient:
             response_data = response.json()
             workout_id = response_data.get("id")
 
-            print(f"✅ Successfully uploaded '{workout.name}'")
+            logger.info(f"✅ Successfully uploaded '{workout.name}'")
             if workout_id:
-                print(f"   Intervals.icu ID: {workout_id}")
+                logger.info(f"   Intervals.icu ID: {workout_id}")
 
             return {"success": True, "workout_id": workout_id, "error": None}
 
         except requests.exceptions.RequestException as e:
-            print(f"❌ Error uploading workout '{workout.name}': {e}")
+            logger.error(f"❌ Error uploading workout '{workout.name}': {e}")
             if hasattr(e, "response") and e.response is not None:
-                print(f"   Status: {e.response.status_code}")
-                print(f"   Response: {e.response.text}")
+                logger.info(f"   Status: {e.response.status_code}")
+                logger.info(f"   Response: {e.response.text}")
             return {"success": False, "workout_id": None, "error": str(e)}
         except Exception as e:
-            print(f"❌ Unexpected error for '{workout.name}': {e}")
+            logger.error(f"❌ Unexpected error for '{workout.name}': {e}")
             return {"success": False, "workout_id": None, "error": str(e)}
 
     @classmethod
@@ -190,15 +191,15 @@ class IntervalicuClient:
             response = requests.delete(url, headers=headers)
             response.raise_for_status()
 
-            print(f"✅ Deleted workout ID: {workout_id}")
+            logger.info(f"✅ Deleted workout ID: {workout_id}")
             return {"success": True, "error": None}
 
         except requests.exceptions.RequestException as e:
-            print(f"❌ Error deleting workout {workout_id}: {e}")
+            logger.error(f"❌ Error deleting workout {workout_id}: {e}")
             if hasattr(e, "response") and e.response is not None:
-                print(f"   Status: {e.response.status_code}")
-                print(f"   Response: {e.response.text}")
+                logger.info(f"   Status: {e.response.status_code}")
+                logger.info(f"   Response: {e.response.text}")
             return {"success": False, "error": str(e)}
         except Exception as e:
-            print(f"❌ Unexpected error deleting {workout_id}: {e}")
+            logger.error(f"❌ Unexpected error deleting {workout_id}: {e}")
             return {"success": False, "error": str(e)}

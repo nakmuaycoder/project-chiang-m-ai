@@ -16,6 +16,7 @@ from typing import Any, Dict, List, Optional
 from pydantic import BaseModel
 
 from llm_coach.interfaces.calendar import CalendarEvent
+from llm_coach.logger import logger
 
 
 class WorkoutMapping(BaseModel):
@@ -102,8 +103,8 @@ class WorkoutSyncTracker:
                     data = json.load(f)
                 return SyncHistory(**data)
             except Exception as e:
-                print(f"⚠️  Error loading sync history: {e}")
-                print("   Creating new history")
+                logger.error(f"⚠️  Error loading sync history: {e}")
+                logger.info("   Creating new history")
 
         return SyncHistory()
 
@@ -113,7 +114,7 @@ class WorkoutSyncTracker:
             with open(self.db_path, "w") as f:
                 json.dump(self.history.model_dump(), f, indent=2, default=str)
         except Exception as e:
-            print(f"❌ Error saving sync history: {e}")
+            logger.error(f"❌ Error saving sync history: {e}")
 
     def record_sync(
         self,
@@ -158,9 +159,9 @@ class WorkoutSyncTracker:
                 existing.synced_at = datetime.now().isoformat()
                 if intervalicu_id:
                     existing.intervalicu_id = intervalicu_id
-                print(f"   📝 Updated mapping for calendar event: {event_id}")
+                logger.info(f"   📝 Updated mapping for calendar event: {event_id}")
             else:
-                print(f"   ℹ️  Mapping already exists (no changes): {event_id}")
+                logger.info(f"   ℹ️  Mapping already exists (no changes): {event_id}")
 
             self._save_history()
             return existing
@@ -182,7 +183,7 @@ class WorkoutSyncTracker:
         self.history.add_mapping(mapping)
         self._save_history()
 
-        print(
+        logger.info(
             f"   💾 Recorded sync: {event_summary} → Intervals.icu ID {intervalicu_id}"
         )
 
@@ -196,16 +197,16 @@ class WorkoutSyncTracker:
         """Print sync statistics"""
         stats = self.get_stats()
 
-        print("\n" + "=" * 70)
-        print("📊 SYNC HISTORY STATISTICS")
-        print("=" * 70)
-        print(f"Total workouts synced: {stats['total_synced']}")
-        print(f"  ✅ Uploaded: {stats['uploaded']}")
-        print(f"  🔄 Updated: {stats['updated']}")
-        print(f"  ❌ Failed: {stats['failed']}")
-        print(f"Last sync: {stats['last_sync']}")
-        print(f"Database: {self.db_path}")
-        print("=" * 70)
+        logger.info("\n" + "=" * 70)
+        logger.info("📊 SYNC HISTORY STATISTICS")
+        logger.info("=" * 70)
+        logger.info(f"Total workouts synced: {stats['total_synced']}")
+        logger.info(f"  ✅ Uploaded: {stats['uploaded']}")
+        logger.info(f"  🔄 Updated: {stats['updated']}")
+        logger.error(f"  ❌ Failed: {stats['failed']}")
+        logger.info(f"Last sync: {stats['last_sync']}")
+        logger.info(f"Database: {self.db_path}")
+        logger.info("=" * 70)
 
     def export_mappings(self, output_path: Optional[Path] = None) -> Path:
         """Export mappings to JSON file"""
@@ -224,7 +225,9 @@ class WorkoutSyncTracker:
                 default=str,
             )
 
-        print(f"📁 Exported {len(self.history.mappings)} mappings to: {output_path}")
+        logger.info(
+            f"📁 Exported {len(self.history.mappings)} mappings to: {output_path}"
+        )
         return output_path
 
 
@@ -254,9 +257,9 @@ if __name__ == "__main__":
         status="uploaded",
     )
 
-    print("\n✅ Recorded mapping:")
-    print(f"   Calendar: {mapping.calendar_event_id}")
-    print(f"   Intervals.icu: {mapping.intervalicu_id}")
+    logger.info("\n✅ Recorded mapping:")
+    logger.info(f"   Calendar: {mapping.calendar_event_id}")
+    logger.info(f"   Intervals.icu: {mapping.intervalicu_id}")
 
     # Print stats
     tracker.print_stats()

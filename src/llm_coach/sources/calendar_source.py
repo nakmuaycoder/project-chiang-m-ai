@@ -9,6 +9,7 @@ from typing import List
 
 from llm_coach.interfaces.calendar import ICalendarProvider
 from llm_coach.interfaces.workout_source import IWorkoutSource
+from llm_coach.logger import logger
 from llm_coach.models.workout import Workout
 
 
@@ -82,8 +83,10 @@ class CalendarWorkoutSource(IWorkoutSource):
 
         # Log errors (could be improved with proper logging)
         if errors:
-            print(f"⚠️  Encountered {len(errors)} error(s) parsing calendar events:")
+            logger.warning(
+                f"⚠️  Encountered {len(errors)} error(s) parsing calendar events:"
+            )
             for err in errors:
-                print(f"   - {err['event']}: {err['error']}")
+                logger.info(f"   - {err['event']}: {err['error']}")
 
         return workouts
