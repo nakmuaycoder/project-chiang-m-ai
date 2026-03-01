@@ -156,8 +156,8 @@ python -m llm_coach sync --help
 - **Language:** Python 3.12+
 - **Package Manager:** [uv](https://github.com/astral-sh/uv)
 - **Linters:** Ruff, Pre-commit, Detect-secrets
-- **APIs:** Intervals.icu, Google Calendar, Google Gemini
-- **Architecture:** Provider-agnostic interfaces (swap Google Calendar → Outlook, Gemini → ChatGPT, etc.)
+- **APIs:** Intervals.icu, Google Calendar
+- **Architecture:** Provider-agnostic interfaces (swap Google Calendar → Outlook, etc.)
 
 ## 📂 Project Structure
 
@@ -171,14 +171,11 @@ llm-coach/
 │   │
 │   ├── interfaces/          # Abstract interfaces
 │   │   ├── workout_source.py
-│   │   ├── calendar.py
-│   │   └── llm.py
+│   │   └── calendar.py
 │   │
 │   ├── clients/             # API clients
 │   │   ├── google_calendar.py
-│   │   ├── intervalicu.py
-│   │   ├── gemini.py
-│   │   └── local_llm.py     # Stub for future
+│   │   └── intervalicu.py
 │   │
 │   ├── sources/             # Workout sources
 │   │   └── calendar_source.py
@@ -218,7 +215,6 @@ python -m llm_coach sync --block  # Auto-calculates 21 or 28 days
 Contributions welcome! The architecture uses provider-agnostic interfaces, making it easy to add:
 
 - **New calendar providers** (Outlook, Apple Calendar)
-- **New LLM providers** (ChatGPT, Claude, local models)
 - **New workout platforms** (TrainingPeaks, Garmin Connect direct)
 
 ## 📝 License

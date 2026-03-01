@@ -1,18 +1,18 @@
 [project]
 name = "llm_coach"
 version = "0.1.0"
-description = "Assistant d'entraînement IA connectant Gemini à Intervals.icu et TrainingPeaks."
+description = "AI training assistant connecting your calendars to Intervals.icu."
 readme = "README.md"
 requires-python = ">=3.12"
 authors = [
-    { name = "feherolivier", email = "feherolivier@gmail.com" }
+    { name = "nakmuaycoder"}
 ]
 license = { text = "MIT" }
 
-# Les dépendances principales
+# Main dependencies
 dependencies = [
-    "requests>=2.32.0",          # Pour parler à l'API Intervals.icu
-    "python-dotenv>=1.0.1",      # Pour gérer les clés API via un fichier .env
+    "requests>=2.32.0",          # To talk to the Intervals.icu API
+    "python-dotenv>=1.0.1",      # To manage API keys via a .env file
     "pydantic>=2.12.5",
     "pydantic-settings>=2.12.0",
     "google-api-python-client>=2.188.0",
@@ -25,7 +25,7 @@ dependencies = [
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-# Configuration spécifique pour uv (optionnel mais recommandé)
+# Specific configuration for uv (optional but recommended)
 [tool.uv]
 [dependency-groups]
 dev = [
@@ -40,7 +40,7 @@ line-length = 88
 target-version = "py312"
 
 [tool.ruff.lint]
-select = ["E", "F", "I"]  # E=Erreurs, F=Pyflakes, I=Isort (trie les imports)
+select = ["E", "F", "I"]  # E=Errors, F=Pyflakes, I=Isort (sorts imports)
 ignore = []
 
 [tool.ruff.format]

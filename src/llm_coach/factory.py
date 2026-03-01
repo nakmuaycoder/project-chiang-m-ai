@@ -36,7 +36,6 @@ def get_workout_source() -> IWorkoutSource:
     # For now only calendar source is implemented
     # Future: Add WORKOUT_SOURCE setting to support:
     #   - "calendar": CalendarWorkoutSource
-    #   - "llm": DirectLLMWorkoutSource
     #   - "file": FileWorkoutSource
 
     calendar_provider = get_calendar_provider()

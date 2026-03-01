@@ -1,7 +1,7 @@
 """
-Script to set up API keys for the Gemini Coach application.
-This script prompts the user for their Intervals.icu and Google Gemini API keys
-and saves them into a local .env file.
+Script to set up API keys for the llm-coach application.
+This script prompts the user for their Intervals.icu API keys and Google
+Calendar credentials and saves them into a local .env file.
 """
 
 import argparse
@@ -13,7 +13,7 @@ def main() -> None:
     Parses command-line arguments and creates a .env file with the provided API keys.
     """
     # Initialize argument parser
-    parser = argparse.ArgumentParser(description="Setup API keys for Gemini Coach.")
+    parser = argparse.ArgumentParser(description="Setup API keys for llm-coach.")
 
     # Define required arguments
     parser.add_argument(

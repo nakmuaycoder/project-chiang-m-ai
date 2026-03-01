@@ -76,4 +76,4 @@ Challenge the LLM: If the AI suggests 15 hours of training but you only have 10 
 
 Sanity Check: Ensure the dates are continuous (Phase 2 starts the day after Phase 1 ends).
 
-Save: Copy the final JSON code block and save it to src/gemini_coach/data/season_plan.json.
+Save: Copy the final JSON code block and save it to data/season_plan.json.
