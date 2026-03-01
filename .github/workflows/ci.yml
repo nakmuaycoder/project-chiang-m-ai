@@ -23,15 +23,12 @@ jobs:
       - name: Install dependencies
         run: uv sync --all-extras --dev
 
+      - name: Run pre-commit checks
+        run: uv run pre-commit run --all-files --show-diff-on-failure
+
       - name: Run tests
         # Set dummy env vars for tests that import config
         env:
           INTERVALS_ATHLETE_ID: "dummy"
           INTERVALS_API_KEY: "dummy"  # pragma: allowlist secret
         run: uv run pytest
-
-      - name: Run ruff lint
-        run: uv run ruff check .
-
-      - name: Run ruff format check
-        run: uv run ruff format --check .
