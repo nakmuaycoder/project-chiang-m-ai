@@ -15,6 +15,7 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel
 
+from llm_coach.config import settings
 from llm_coach.interfaces.calendar import CalendarEvent
 from llm_coach.logger import logger
 
@@ -91,7 +92,7 @@ class WorkoutSyncTracker:
         Args:
             db_path: Path to JSON database file
         """
-        self.db_path = db_path or Path("data/workout_sync_history.json")
+        self.db_path = db_path or settings.get_db_path
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.history = self._load_history()
 
@@ -211,8 +212,9 @@ class WorkoutSyncTracker:
     def export_mappings(self, output_path: Optional[Path] = None) -> Path:
         """Export mappings to JSON file"""
         if output_path is None:
-            output_path = Path(
-                f"data/workout_mappings_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+            output_path = (
+                self.db_path.parent
+                / f"workout_mappings_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
             )
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
