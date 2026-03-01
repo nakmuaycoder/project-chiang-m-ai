@@ -1,31 +1,17 @@
 import json
 from datetime import datetime, timedelta, timezone
-from unittest.mock import MagicMock
-
-import pytest
+from unittest.mock import patch
 
 from llm_coach.interfaces.calendar import CalendarEvent
 from llm_coach.services.coach import CoachService
 
 
-@pytest.fixture
-def mock_calendar_client():
-    from llm_coach.clients.google_calendar import GoogleCalendarClient
-
-    client = MagicMock(spec=GoogleCalendarClient)
-    return client
-
-
-@pytest.fixture
-def mock_intervalicu_client():
-    from llm_coach.clients.intervalicu import IntervalicuClient
-
-    client = MagicMock(spec=IntervalicuClient)
-    return client
-
-
-def test_sync_from_calendar_success(mock_calendar_client, mock_intervalicu_client):
+@patch("llm_coach.services.coach.IntervalicuClient")
+@patch("llm_coach.services.coach.GoogleCalendarClient")
+def test_sync_from_calendar_success(mock_google_cal_cls, mock_intervalicu_cls):
     """Test syncing a valid workout from the calendar straight to an API mock."""
+    mock_calendar_client = mock_google_cal_cls.return_value
+    mock_intervalicu_client = mock_intervalicu_cls.return_value
 
     # Setup simulated calendar event
     now = datetime.now(timezone.utc)
@@ -58,8 +44,6 @@ def test_sync_from_calendar_success(mock_calendar_client, mock_intervalicu_clien
     }
 
     service = CoachService(enable_tracking=False)
-    service.calendar_client = mock_calendar_client
-    service.intervalicu_client = mock_intervalicu_client
 
     results = service.sync_from_calendar(sync_mode="all")
 
