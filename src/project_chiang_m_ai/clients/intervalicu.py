@@ -121,9 +121,10 @@ class IntervalicuClient:
 
             start_date = workout.start_date_local
             if start_date:
-                match = re.match(r"(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})", start_date)
-                if match:
-                    start_date = match.group(1)
+                from dateutil import parser
+
+                dt_object = parser.isoparse(start_date)
+                start_date = dt_object.strftime("%Y-%m-%dT%H:%M:%S")
 
             # Prepare event payload
             event_payload = {
