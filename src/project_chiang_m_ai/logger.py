@@ -2,7 +2,7 @@ import logging
 import sys
 
 
-def setup_logger(name="llm_coach", level=logging.INFO):
+def setup_logger(name="project_chiang_m_ai", level=logging.INFO):
     """
     Configures and returns a logger with a StreamHandler pointing to stdout.
     This maintains the clean formatting of CLI tools (no timestamps, module names, etc.)

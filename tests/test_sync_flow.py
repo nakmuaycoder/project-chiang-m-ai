@@ -2,12 +2,12 @@ import json
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
-from llm_coach.interfaces.calendar import CalendarEvent
-from llm_coach.services.coach import CoachService
+from project_chiang_m_ai.interfaces.calendar import CalendarEvent
+from project_chiang_m_ai.services.coach import CoachService
 
 
-@patch("llm_coach.services.coach.IntervalicuClient")
-@patch("llm_coach.services.coach.GoogleCalendarClient")
+@patch("project_chiang_m_ai.services.coach.IntervalicuClient")
+@patch("project_chiang_m_ai.services.coach.GoogleCalendarClient")
 def test_sync_from_calendar_success(mock_google_cal_cls, mock_intervalicu_cls):
     """Test syncing a valid workout from the calendar straight to an API mock."""
     mock_calendar_client = mock_google_cal_cls.return_value

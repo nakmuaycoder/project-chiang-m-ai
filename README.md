@@ -1,11 +1,20 @@
-# 🤖 llm-coach
+# ⛰️ Project Chiang M-AI
 
 ![Python](https://img.shields.io/badge/python-3.12+-blue.svg)
 ![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)
 ![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-**llm-coach** syncs AI-generated training plans (from Gemini/ChatGPT) to your training devices (Garmin, Wahoo, smart trainers) via **Intervals.icu**.
+**Project Chiang M-AI** syncs AI-generated training plans (from Gemini/ChatGPT) to your training devices (Garmin, Wahoo, smart trainers) via **Intervals.icu**.
+
+## ⛰️ Project Chiang M-AI
+
+This project is the technical implementation of **Project Chiang M-AI**, an R&D initiative documenting the use of LLMs, Python automation, and system engineering to prepare for the **Hoka Chiang Mai 160km** (100 miles) ultra-trail.
+
+Full story, technical deep dives, and ongoing architectural logs are available at:
+👉 **[Project Chiang M-AI: Fine-Tuning the Fighter](https://nakmuaycoder.github.io/nakmuaycoder-r-d-lab/posts/project-chiang-m-ai/)**
+
+*(Series includes: AI Board of Directors, Adversarial Validation, Agile Runtime Loops, and more.)*
 
 ## 🏗️ Architecture & Workflow
 
@@ -15,14 +24,14 @@
 You generate training plans with frontier LLMs (Gemini 3, ChatGPT 5.2), but getting them to your devices is manual and tedious.
 
 ### The Solution
-**llm-coach** bridges the gap:
+**Project Chiang M-AI** bridges the gap:
 
 ```
 Gemini/ChatGPT (plan generation)
     ↓ (copy JSON to calendar)
 Google Calendar
     ↓ (automated sync)
-llm-coach CLI → Intervals.icu
+Project Chiang M-AI CLI → Intervals.icu
     ↓ (automatic sync)
 Garmin Watch / Wahoo Computer / Smart Trainers
 ```
@@ -35,8 +44,8 @@ Garmin Watch / Wahoo Computer / Smart Trainers
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/nakmuaycoder/llm-coach.git
-   cd llm-coach
+   git clone https://github.com/nakmuaycoder/project-chiang-m-ai.git
+   cd project-chiang-m-ai
    ```
 
 2. **Install uv (if needed):**

@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import List
 
-from llm_coach.models.workout import Workout
+from project_chiang_m_ai.models.workout import Workout
 
 
 class IWorkoutSource(ABC):

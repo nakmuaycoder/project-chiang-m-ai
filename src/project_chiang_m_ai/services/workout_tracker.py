@@ -15,9 +15,9 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel
 
-from llm_coach.config import settings
-from llm_coach.interfaces.calendar import CalendarEvent
-from llm_coach.logger import logger
+from project_chiang_m_ai.config import settings
+from project_chiang_m_ai.interfaces.calendar import CalendarEvent
+from project_chiang_m_ai.logger import logger
 
 
 class WorkoutMapping(BaseModel):

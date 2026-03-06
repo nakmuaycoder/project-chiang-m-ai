@@ -7,10 +7,10 @@ import json
 from datetime import datetime
 from typing import List
 
-from llm_coach.interfaces.calendar import ICalendarProvider
-from llm_coach.interfaces.workout_source import IWorkoutSource
-from llm_coach.logger import logger
-from llm_coach.models.workout import Workout
+from project_chiang_m_ai.interfaces.calendar import ICalendarProvider
+from project_chiang_m_ai.interfaces.workout_source import IWorkoutSource
+from project_chiang_m_ai.logger import logger
+from project_chiang_m_ai.models.workout import Workout
 
 
 class CalendarWorkoutSource(IWorkoutSource):

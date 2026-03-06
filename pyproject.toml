@@ -1,7 +1,7 @@
 [project]
-name = "llm_coach"
+name = "project_chiang_m_ai"
 version = "0.1.0"
-description = "AI training assistant connecting your calendars to Intervals.icu."
+description = "Project Chiang M-AI: AI training assistant connecting your calendars to Intervals.icu."
 readme = "README.md"
 requires-python = ">=3.12"
 authors = [
@@ -48,4 +48,4 @@ quote-style = "double"
 indent-style = "space"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/llm_coach"]
+packages = ["src/project_chiang_m_ai"]

@@ -1,5 +1,5 @@
-from llm_coach.models.strength_workout import StrengthWorkout
-from llm_coach.models.workout import RideWorkout, RunWorkout, Workout, Zone
+from project_chiang_m_ai.models.strength_workout import StrengthWorkout
+from project_chiang_m_ai.models.workout import RideWorkout, RunWorkout, Workout, Zone
 
 
 def test_type_inference_run():
@@ -87,7 +87,7 @@ def test_zone_parsing_raw_key():
 
 def test_duration_parsing():
     """Test human readable durations in steps."""
-    from llm_coach.models.workout import Step
+    from project_chiang_m_ai.models.workout import Step
 
     step1 = Step(duration="1h 30m", zone={"z": "Z2"})
     assert step1.duration == 5400

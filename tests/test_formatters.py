@@ -1,5 +1,5 @@
-from llm_coach.clients.intervalicu import IntervalicuClient
-from llm_coach.models.workout import Workout
+from project_chiang_m_ai.clients.intervalicu import IntervalicuClient
+from project_chiang_m_ai.models.workout import Workout
 
 
 def test_intervals_run_ride_formatter():

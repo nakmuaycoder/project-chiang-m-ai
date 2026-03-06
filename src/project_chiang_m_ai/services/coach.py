@@ -8,12 +8,12 @@ import json
 import uuid
 from typing import Any, Dict, List
 
-from llm_coach.clients.google_calendar import GoogleCalendarClient
-from llm_coach.clients.intervalicu import IntervalicuClient
-from llm_coach.interfaces.calendar import CalendarEvent
-from llm_coach.logger import logger
-from llm_coach.models.workout import Workout
-from llm_coach.services.workout_tracker import WorkoutSyncTracker
+from project_chiang_m_ai.clients.google_calendar import GoogleCalendarClient
+from project_chiang_m_ai.clients.intervalicu import IntervalicuClient
+from project_chiang_m_ai.interfaces.calendar import CalendarEvent
+from project_chiang_m_ai.logger import logger
+from project_chiang_m_ai.models.workout import Workout
+from project_chiang_m_ai.services.workout_tracker import WorkoutSyncTracker
 
 
 class CoachService:
@@ -228,7 +228,9 @@ class CoachService:
                     results["uploaded"] += 1
                 else:
                     # Check if this is a strength workout
-                    from llm_coach.models.strength_workout import StrengthWorkout
+                    from project_chiang_m_ai.models.strength_workout import (
+                        StrengthWorkout,
+                    )
 
                     if isinstance(workout, StrengthWorkout):
                         # Upload strength workout as text description
@@ -237,7 +239,7 @@ class CoachService:
 
                         import requests
 
-                        from llm_coach.config import settings
+                        from project_chiang_m_ai.config import settings
 
                         # Strip timezone from date (Intervals.icu doesn't accept it)
                         start_date = workout.start_date_local
@@ -542,7 +544,7 @@ if __name__ == "__main__":
     CLI entry point for manual sync testing.
 
     Usage:
-        python -m llm_coach.services.coach
+        python -m project_chiang_m_ai.services.coach
     """
     logger.info("🏋️  LLM Coach - Calendar to Intervals.icu Sync\n")
 

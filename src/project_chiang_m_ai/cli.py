@@ -1,5 +1,5 @@
 """
-LLM Coach CLI
+Project Chiang M-ai CLI
 
 Command-line interface for syncing LLM-generated workouts to Intervals.icu
 (and subsequently to Garmin, Wahoo, and home trainer apps).
@@ -8,9 +8,9 @@ Command-line interface for syncing LLM-generated workouts to Intervals.icu
 import argparse
 import sys
 
-from llm_coach.config import settings
-from llm_coach.logger import logger
-from llm_coach.services.coach import CoachService
+from project_chiang_m_ai.config import settings
+from project_chiang_m_ai.logger import logger
+from project_chiang_m_ai.services.coach import CoachService
 
 
 def calculate_block_days(periodization: str) -> int:
@@ -86,7 +86,7 @@ def cmd_sync(args):
 
 def cmd_clean(args):
     """Clean up synced workouts from Intervals.icu."""
-    from llm_coach.services.workout_tracker import WorkoutSyncTracker
+    from project_chiang_m_ai.services.workout_tracker import WorkoutSyncTracker
 
     tracker = WorkoutSyncTracker()
     stats = tracker.get_stats()
@@ -113,7 +113,7 @@ def cmd_clean(args):
             sys.exit(0)
 
     # Delete workouts
-    from llm_coach.clients.intervalicu import IntervalicuClient
+    from project_chiang_m_ai.clients.intervalicu import IntervalicuClient
 
     intervalicu = IntervalicuClient()
     deleted = 0
@@ -149,7 +149,7 @@ def cmd_clean(args):
 
 def cmd_status(args):
     """Show sync status and statistics."""
-    from llm_coach.services.workout_tracker import WorkoutSyncTracker
+    from project_chiang_m_ai.services.workout_tracker import WorkoutSyncTracker
 
     tracker = WorkoutSyncTracker()
     stats = tracker.get_stats()
@@ -192,22 +192,22 @@ def main():
         epilog="""
 Examples:
   # Sync current training block (based on PERIODIZATION setting)
-  python -m llm_coach sync --block
+  python -m project_chiang_m_ai sync --block
 
   # Sync this week
-  python -m llm_coach sync --week
+  python -m project_chiang_m_ai sync --week
 
   # Sync today only
-  python -m llm_coach sync --today
+  python -m project_chiang_m_ai sync --today
 
   # Sync next 14 days
-  python -m llm_coach sync --days 14
+  python -m project_chiang_m_ai sync --days 14
 
   # Show status
-  python -m llm_coach status
+  python -m project_chiang_m_ai status
 
   # Clean up all synced workouts
-  python -m llm_coach clean
+  python -m project_chiang_m_ai clean
         """,
     )
 

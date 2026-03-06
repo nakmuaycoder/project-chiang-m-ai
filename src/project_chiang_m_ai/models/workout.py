@@ -11,7 +11,7 @@ from pydantic import (
     model_validator,
 )
 
-from llm_coach.models.strength_workout import StrengthWorkout
+from project_chiang_m_ai.models.strength_workout import StrengthWorkout
 
 
 class ZoneDefinition(BaseModel):

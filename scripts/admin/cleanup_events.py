@@ -13,9 +13,9 @@ import sys
 
 sys.path.insert(0, "src")
 
-from llm_coach.clients.google_calendar import GoogleCalendarClient
-from llm_coach.clients.intervalicu import IntervalicuClient
-from llm_coach.services.workout_tracker import WorkoutSyncTracker
+from project_chiang_m_ai.clients.google_calendar import GoogleCalendarClient
+from project_chiang_m_ai.clients.intervalicu import IntervalicuClient
+from project_chiang_m_ai.services.workout_tracker import WorkoutSyncTracker
 
 print("🗑️  Detect and Clean Up Deleted Calendar Events")
 print("=" * 70)

@@ -9,7 +9,7 @@ import sys
 
 sys.path.insert(0, "src")
 
-from llm_coach.services.coach import CoachService
+from project_chiang_m_ai.services.coach import CoachService
 
 
 def main():

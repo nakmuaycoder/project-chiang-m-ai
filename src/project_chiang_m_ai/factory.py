@@ -2,10 +2,10 @@
 Factory functions for creating provider instances based on configuration.
 """
 
-from llm_coach.clients.google_calendar import GoogleCalendarClient
-from llm_coach.interfaces.calendar import ICalendarProvider
-from llm_coach.interfaces.workout_source import IWorkoutSource
-from llm_coach.sources.calendar_source import CalendarWorkoutSource
+from project_chiang_m_ai.clients.google_calendar import GoogleCalendarClient
+from project_chiang_m_ai.interfaces.calendar import ICalendarProvider
+from project_chiang_m_ai.interfaces.workout_source import IWorkoutSource
+from project_chiang_m_ai.sources.calendar_source import CalendarWorkoutSource
 
 
 def get_calendar_provider() -> ICalendarProvider:

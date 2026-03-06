@@ -8,9 +8,9 @@ import base64
 
 import requests
 
-from llm_coach.config import settings
-from llm_coach.logger import logger
-from llm_coach.models.workout import Workout
+from project_chiang_m_ai.config import settings
+from project_chiang_m_ai.logger import logger
+from project_chiang_m_ai.models.workout import Workout
 
 BASE_URL = "https://intervals.icu/api/v1/athlete"
 

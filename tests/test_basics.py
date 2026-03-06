@@ -1,13 +1,13 @@
 """
-Basic tests for LLM Coach.
+Basic tests for Project Chiang M-ai .
 """
 
 from datetime import datetime, timezone
 
 import pytest
 
-from llm_coach.cli import calculate_block_days
-from llm_coach.interfaces.calendar import CalendarEvent
+from project_chiang_m_ai.cli import calculate_block_days
+from project_chiang_m_ai.interfaces.calendar import CalendarEvent
 
 
 def test_imports():
@@ -15,9 +15,9 @@ def test_imports():
     import importlib
 
     modules = [
-        "llm_coach.config",
-        "llm_coach.factory",
-        "llm_coach.services.coach",
+        "project_chiang_m_ai.config",
+        "project_chiang_m_ai.factory",
+        "project_chiang_m_ai.services.coach",
     ]
     for module in modules:
         try:
