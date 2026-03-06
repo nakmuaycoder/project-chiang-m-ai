@@ -101,63 +101,63 @@ uv run setup_keys.py --intervals_id="i12345" \
 
 **Sync current training block:**
 ```bash
-python -m llm_coach sync --block
+python -m project_chiang_m_ai sync --block
 ```
 Syncs 28 days (3:1 periodization) or 21 days (2:1 periodization) based on your `.env` config.
 
 **Other sync options:**
 ```bash
 # This week (7 days)
-python -m llm_coach sync --week
+python -m project_chiang_m_ai sync --week
 
 # Today only
-python -m llm_coach sync --today
+python -m project_chiang_m_ai sync --today
 
 # Custom number of days
-python -m llm_coach sync --days 14
+python -m project_chiang_m_ai sync --days 14
 
 # Dry run (parse but don't upload)
-python -m llm_coach sync --block --dry-run
+python -m project_chiang_m_ai sync --block --dry-run
 ```
 
 ### Check Status
 
 ```bash
 # Show sync statistics
-python -m llm_coach status
+python -m project_chiang_m_ai status
 
 # List all synced workouts
-python -m llm_coach status --list
+python -m project_chiang_m_ai status --list
 ```
 
 ### Clean Up
 
 ```bash
 # Delete all synced workouts from Intervals.icu
-python -m llm_coach clean
+python -m project_chiang_m_ai clean
 
 # Skip confirmation prompt
-python -m llm_coach clean -y
+python -m project_chiang_m_ai clean -y
 
 # Also clear sync database
-python -m llm_coach clean --clear-db
+python -m project_chiang_m_ai clean --clear-db
 ```
 
 ### Help
 
 ```bash
 # Show all commands
-python -m llm_coach --help
+python -m project_chiang_m_ai --help
 
 # Command-specific help
-python -m llm_coach sync --help
+python -m project_chiang_m_ai sync --help
 ```
 
 ## 🔄 Workflow
 
 1. **Generate your training plan** using Gemini 2.0 or ChatGPT o1
 2. **Copy workout JSON** to Google Calendar event descriptions
-3. **Sync to devices**: `python -m llm_coach sync --block`
+3. **Sync to devices**: `python -m project_chiang_m_ai sync --block`
 4. **Your workouts appear** on Garmin/Wahoo/trainer apps automatically!
 
 ## 🛠️ Tech Stack
@@ -171,8 +171,8 @@ python -m llm_coach sync --help
 ## 📂 Project Structure
 
 ```
-llm-coach/
-├── src/llm_coach/
+project-chiang-m-ai/
+├── src/project_chiang_m_ai/
 │   ├── __main__.py          # CLI entry point
 │   ├── cli.py               # CLI commands
 │   ├── config.py            # Configuration
@@ -216,7 +216,7 @@ PERIODIZATION=3:1
 
 Then sync your entire block:
 ```bash
-python -m llm_coach sync --block  # Auto-calculates 21 or 28 days
+python -m project_chiang_m_ai sync --block  # Auto-calculates 21 or 28 days
 ```
 
 ## 🤝 Contributing

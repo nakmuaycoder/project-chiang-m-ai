@@ -1,5 +1,5 @@
 """
-Script to set up API keys for the llm-coach application.
+Script to set up API keys for the Project Chiang M-AI application.
 This script prompts the user for their Intervals.icu API keys and Google
 Calendar credentials and saves them into a local .env file.
 """
@@ -13,7 +13,9 @@ def main() -> None:
     Parses command-line arguments and creates a .env file with the provided API keys.
     """
     # Initialize argument parser
-    parser = argparse.ArgumentParser(description="Setup API keys for llm-coach.")
+    parser = argparse.ArgumentParser(
+        description="Setup API keys for Project Chiang M-AI."
+    )
 
     # Define required arguments
     parser.add_argument(

@@ -4,41 +4,41 @@
 # 🛠️ INSTALLATION
 # ==========================================
 install:
-	@echo "📦 Installation des dépendances avec uv..."
+	@echo "📦 Installing dependencies with uv..."
 	uv sync
-	@echo "🪝 Installation des hooks Git (Pre-commit)..."
+	@echo "🪝 Installing Git hooks (Pre-commit)..."
 	uv run pre-commit install
-	@echo "🔒 Vérification du fichier de secrets..."
+	@echo "🔒 Checking secrets baseline..."
 	@if [ ! -f .secrets.baseline ]; then \
-		echo "   -> Génération de .secrets.baseline..."; \
+		echo "   -> Generating .secrets.baseline..."; \
 		uv run detect-secrets scan > .secrets.baseline; \
 	else \
-		echo "   -> .secrets.baseline existe déjà (on ne touche à rien)."; \
+		echo "   -> .secrets.baseline already exists (skipping)."; \
 	fi
-	@echo "✅ Environnement prêt ! Tu peux coder."
+	@echo "✅ Environment ready! Happy coding."
 
 
 run:
-	uv run main.py
+	uv run python -m project_chiang_m_ai sync --block
 
 
-# Formate tout le code (Ruff) sans attendre le commit
+# Format all code (Ruff) without waiting for commit
 format:
 	uv run ruff format .
 	uv run ruff check --fix .
 
-# Juste vérifier s'il y a des erreurs (sans modifier)
+# Only check for errors (without modifying)
 check:
 	uv run ruff check .
 
-# Supprime l'environnement virtuel et les caches
+# Remove virtual environment and caches
 clean:
 	rm -rf .venv
 	rm -rf .ruff_cache
 	rm -rf .pytest_cache
 	find . -type d -name "__pycache__" -exec rm -rf {} +
 
-# Lance les tests avec pytest
+# Run tests with pytest
 test:
-	@echo "🧪 Lancement des tests..."
+	@echo "🧪 Running tests..."
 	uv run pytest
