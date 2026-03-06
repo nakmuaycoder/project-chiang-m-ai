@@ -34,7 +34,7 @@ calendar = GoogleCalendarClient()
 events = calendar.list_upcoming_events(max_results=100)
 
 # Create set of current calendar event IDs
-current_event_ids = {event["id"] for event in events}
+current_event_ids = {event.id for event in events}
 
 print(f"✅ Found {len(events)} calendar events")
 print(f"💾 Found {len(tracker.history.mappings)} synced workouts in database")
