@@ -73,7 +73,7 @@ response = input(
 ).strip()
 
 if response.lower() != "yes":
-    print("\\n❌ Cancelled - no changes made")
+    print("\n❌ Cancelled - no changes made")
     sys.exit(0)
 
 print()
