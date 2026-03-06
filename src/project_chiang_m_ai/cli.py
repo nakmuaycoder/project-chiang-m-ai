@@ -143,7 +143,7 @@ def cmd_clean(args):
 
     logger.info("")
     logger.info("=" * 70)
-    logger.error(f"✅ Deleted: {deleted}, ❌ Failed: {failed}")
+    logger.info(f"✅ Deleted: {deleted}, ❌ Failed: {failed}")
     logger.info("=" * 70)
 
 
