@@ -7,9 +7,6 @@
 
 **Note:** These scripts are superseded by the CLI but kept for manual/advanced operations.
 
-## Legacy Scripts
-
-- `legacy/test_coach_sync.py` - **DEPRECATED** - Use CLI instead
 
 ## Recommended Usage
 
@@ -17,17 +14,17 @@ Use the main CLI for all operations:
 
 ```bash
 # Sync workouts to devices
-python -m llm_coach sync --block    # Replaces: test_coach_sync.py
-python -m llm_coach sync --week
-python -m llm_coach sync --today
+python -m project_chiang_m_ai sync --block    # Replaces: test_coach_sync.py
+python -m project_chiang_m_ai sync --week
+python -m project_chiang_m_ai sync --today
 
 # Delete synced workouts
-python -m llm_coach clean           # Replaces: delete_all_intervals_workouts.py
-python -m llm_coach clean -y        # Skip confirmation
+python -m project_chiang_m_ai clean           # Replaces: delete_all_intervals_workouts.py
+python -m project_chiang_m_ai clean -y        # Skip confirmation
 
 # Check sync status
-python -m llm_coach status
-python -m llm_coach status --list   # List all synced workouts
+python -m project_chiang_m_ai status
+python -m project_chiang_m_ai status --list   # List all synced workouts
 ```
 
 ## Running Admin Scripts Directly
