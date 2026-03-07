@@ -236,21 +236,27 @@ class WorkoutSyncTracker:
 # Example usage
 if __name__ == "__main__":
     import hashlib
+    from datetime import datetime
+
+    from project_chiang_m_ai.interfaces.calendar import CalendarEvent
 
     tracker = WorkoutSyncTracker()
 
     # Example: Record a sync
-    fake_event = {
-        "id": "abc123",
-        "summary": "[Coach] Morning Run",
-        "start": {"dateTime": "2026-02-05T07:00:00+01:00"},
-    }
+    start_dt = datetime.fromisoformat("2026-02-05T07:00:00+01:00")
+    fake_event_obj = CalendarEvent(
+        id="abc123",
+        summary="[Coach] Morning Run",
+        start=start_dt,
+        end=start_dt,
+        description="Easy run with strides",
+    )
 
     workout_content = "Easy run with strides"
     workout_hash = hashlib.md5(workout_content.encode()).hexdigest()[:8]
 
     mapping = tracker.record_sync(
-        calendar_event=fake_event,
+        calendar_event=fake_event_obj,
         workout_name="Morning Run",
         workout_type="Run",
         workout_hash=workout_hash,
