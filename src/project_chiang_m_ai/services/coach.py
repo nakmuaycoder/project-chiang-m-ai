@@ -37,6 +37,7 @@ class CoachService:
         self,
         max_results: int = 100,  # Fetch more events to handle multiple daily sessions
         sync_mode: str = "all",
+        days: int = 28,  # Default fallback if days aren't calculated
         dry_run: bool = False,
     ) -> Dict[str, Any]:
         """
@@ -52,7 +53,7 @@ class CoachService:
         Args:
             max_results: Maximum number of calendar events to fetch (default: 100)
             sync_mode: Filter mode - "today" for today's workouts only, "all"
-            for next 28 days
+            days: The window of days to sync from today
             dry_run: If True, parse workouts but don't upload them
 
         Returns:
@@ -82,7 +83,7 @@ class CoachService:
         # now = datetime(2026, 2, 9, 0, 0, 0, tzinfo=timezone.utc)
         today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         today_end = today_start + timedelta(days=1)
-        future_limit = today_start + timedelta(days=28)  # 28 days from today
+        future_limit = today_start + timedelta(days=days)
 
         # Filter by date based on sync_mode
         filtered_events = []
@@ -106,7 +107,9 @@ class CoachService:
                 if today_start <= event_dt < future_limit:
                     filtered_events.append(event)
 
-            logger.info(f"🗓️  Filtered to next 28 days: {len(filtered_events)} events")
+            logger.info(
+                f"🗓️  Filtered to next {days} days: {len(filtered_events)} events"
+            )
 
         coach_events = filtered_events
 
@@ -480,7 +483,7 @@ if __name__ == "__main__":
     coach_service = CoachService()
 
     # Run sync (use dry_run=True to test without uploading)
-    results = coach_service.sync_from_calendar(max_results=28, dry_run=False)
+    results = coach_service.sync_from_calendar(max_results=28, days=28, dry_run=False)
 
     # Exit with appropriate code
     exit(0 if results["success"] and results["failed"] == 0 else 1)

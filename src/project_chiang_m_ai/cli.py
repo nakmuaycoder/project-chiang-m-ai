@@ -71,7 +71,7 @@ def cmd_sync(args):
     # Run sync
     max_results = min(days * 3, 150)  # Fetch enough events (3 per day max)
     results = coach.sync_from_calendar(
-        max_results=max_results, sync_mode=mode, dry_run=args.dry_run
+        max_results=max_results, sync_mode=mode, days=days, dry_run=args.dry_run
     )
 
     # Summary
