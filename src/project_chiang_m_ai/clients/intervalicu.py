@@ -57,9 +57,8 @@ class IntervalicuClient:
         """
         lines = []
 
-        # Unroll all blocks and repetitions
         for block in workout.steps:
-            for rep in range(block.repetitions):
+            for _ in range(block.repetitions):
                 for step in block.steps:
                     duration_str = cls._format_duration(step.duration)
                     # Use percentage format: "56% - 75%"
