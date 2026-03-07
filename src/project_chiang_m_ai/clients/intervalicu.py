@@ -116,9 +116,6 @@ class IntervalicuClient:
             # Format workout in native format
             workout_description = cls.format_workout_native(workout)
 
-            # Strip timezone from date
-            import re
-
             start_date = workout.start_date_local
             if start_date:
                 from dateutil import parser
