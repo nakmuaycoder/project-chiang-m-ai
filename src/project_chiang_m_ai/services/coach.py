@@ -194,11 +194,13 @@ class CoachService:
                                 if delete_result.get("success"):
                                     logger.info("   ✅ Deleted old workout")
                                 else:
-                                    error_message = delete_result.get("error")
+                                    error_detail = delete_result.get(
+                                        "error", "Unknown error"
+                                    )
                                     error_message = (
                                         "   ⚠️  Failed to delete old workout: {}"
                                     )
-                                    logger.info(error_message.format(error_message))
+                                    logger.info(error_message.format(error_detail))
 
                             # Continue to upload new version
                         else:
