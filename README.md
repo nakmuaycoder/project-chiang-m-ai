@@ -12,12 +12,10 @@
 
 ## ⛰️ Project Chiang M-AI
 
-This project is the technical implementation of **Project Chiang M-AI**, an R&D initiative documenting the use of LLMs, Python automation, and system engineering to prepare for the **Hoka Chiang Mai 160km** (100 miles) ultra-trail.
+This project is the technical implementation of **Project Chiang M-AI**, a personal R&D initiative documenting the use of LLMs, Python automation, and system engineering to prepare for the **Hoka Chiang Mai 160km** (100 miles) ultra-trail.
 
 Full story, technical deep dives, and ongoing architectural logs are available at:
 👉 **[Project Chiang M-AI: Fine-Tuning the Fighter](https://nakmuaycoder.github.io/nakmuaycoder-r-d-lab/posts/project-chiang-m-ai/)**
-
-*(Series includes: AI Board of Directors, Adversarial Validation, Agile Runtime Loops, and more.)*
 
 ## 🏗️ Architecture & Workflow
 
