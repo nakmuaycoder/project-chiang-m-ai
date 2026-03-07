@@ -1,0 +1,57 @@
+{
+    "name": "Test Session",
+    "start_date_local": "2026-02-01T16:21:29",
+    "category": "Ride",
+    "description": "Test Session",
+    "type": "Ride",
+    "color": "#FF0000",
+    "steps": [
+        {
+            "repetitions": 1,
+            "steps": [
+                {
+                    "duration": "10m",
+                    "zone": {
+                        "z": "50% FTP - 60% FTP"
+                    },
+                    "cadence": "120",
+                    "description": "warmup"
+                }
+            ]
+        },
+        {
+            "repetitions": 12,
+            "steps": [
+                {
+                    "duration": "30s",
+                    "zone": {
+                        "z": "Z5"
+                    },
+                    "cadence": "120",
+                    "description": "Test Step"
+                },
+                {
+                    "duration": "30s",
+                    "zone": {
+                        "z": "Z1"
+                    },
+                    "cadence": "120",
+                    "description": "Test Step"
+                }
+            ]
+        },
+        {
+            "repetitions": 1,
+            "steps": [
+                {
+                    "duration": "10m",
+                    "zone": {
+                        "z": "Z1"
+                    },
+                    "cadence": "120",
+                    "description": "cooldown"
+                }
+            ]
+        }
+    ]
+}
