@@ -222,13 +222,6 @@ Then sync your entire block:
 python -m project_chiang_m_ai sync --block  # Auto-calculates 21 or 28 days
 ```
 
-## 🤝 Contributing
-
-Contributions welcome! The architecture uses provider-agnostic interfaces, making it easy to add:
-
-- **New calendar providers** (Outlook, Apple Calendar)
-- **New workout platforms** (TrainingPeaks, Garmin Connect direct)
-
 ## 📝 License
 
 MIT License - see LICENSE file for details.
