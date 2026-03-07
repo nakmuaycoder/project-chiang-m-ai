@@ -13,7 +13,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from project_chiang_m_ai.config import settings
 from project_chiang_m_ai.interfaces.calendar import CalendarEvent
@@ -50,7 +50,7 @@ class SyncHistory(BaseModel):
 
     version: str = "1.0"
     last_sync: Optional[str] = None
-    mappings: List[WorkoutMapping] = []
+    mappings: List[WorkoutMapping] = Field(default_factory=list)
 
     def add_mapping(self, mapping: WorkoutMapping):
         """Add a new mapping"""
@@ -236,7 +236,6 @@ class WorkoutSyncTracker:
 # Example usage
 if __name__ == "__main__":
     import hashlib
-    from datetime import datetime
 
     from project_chiang_m_ai.interfaces.calendar import CalendarEvent
 
