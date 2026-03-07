@@ -12,7 +12,7 @@ from project_chiang_m_ai.clients.google_calendar import GoogleCalendarClient
 from project_chiang_m_ai.clients.intervalicu import IntervalicuClient
 from project_chiang_m_ai.interfaces.calendar import CalendarEvent
 from project_chiang_m_ai.logger import logger
-from project_chiang_m_ai.models.workout import Workout
+from project_chiang_m_ai.models.workout import Workout, WorkoutUnion
 from project_chiang_m_ai.services.workout_tracker import WorkoutSyncTracker
 
 
@@ -403,7 +403,7 @@ class CoachService:
 
         return coach_events
 
-    def _parse_workout_from_event(self, event: CalendarEvent) -> Workout:
+    def _parse_workout_from_event(self, event: CalendarEvent) -> WorkoutUnion:
         """
         Parse a workout from a calendar event's description.
 

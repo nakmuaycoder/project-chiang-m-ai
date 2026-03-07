@@ -12,7 +12,7 @@ from dateutil import parser
 from project_chiang_m_ai.config import settings
 from project_chiang_m_ai.logger import logger
 from project_chiang_m_ai.models.strength_workout import StrengthWorkout
-from project_chiang_m_ai.models.workout import Workout
+from project_chiang_m_ai.models.workout import WorkoutUnion
 
 BASE_URL = "https://intervals.icu/api/v1/athlete"
 
@@ -36,7 +36,7 @@ class IntervalicuClient:
         return base64.b64encode(token).decode("utf-8")
 
     @classmethod
-    def format_workout_native(cls, workout: Workout) -> str:
+    def format_workout_native(cls, workout: WorkoutUnion) -> str:
         """
         Format workout in Intervals.icu native text format.
 

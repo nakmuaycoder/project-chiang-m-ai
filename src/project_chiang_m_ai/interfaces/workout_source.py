@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import List
 
-from project_chiang_m_ai.models.workout import Workout
+from project_chiang_m_ai.models.workout import WorkoutUnion
 
 
 class IWorkoutSource(ABC):
@@ -24,7 +24,7 @@ class IWorkoutSource(ABC):
     @abstractmethod
     def get_workouts(
         self, start_date: datetime, end_date: datetime, max_results: int = 100
-    ) -> List[Workout]:
+    ) -> List[WorkoutUnion]:
         """
         Retrieve workouts from this source within the date range.
 

@@ -10,7 +10,7 @@ from typing import List
 from project_chiang_m_ai.interfaces.calendar import ICalendarProvider
 from project_chiang_m_ai.interfaces.workout_source import IWorkoutSource
 from project_chiang_m_ai.logger import logger
-from project_chiang_m_ai.models.workout import Workout
+from project_chiang_m_ai.models.workout import Workout, WorkoutUnion
 
 
 class CalendarWorkoutSource(IWorkoutSource):
@@ -34,7 +34,7 @@ class CalendarWorkoutSource(IWorkoutSource):
 
     def get_workouts(
         self, start_date: datetime, end_date: datetime, max_results: int = 100
-    ) -> List[Workout]:
+    ) -> List[WorkoutUnion]:
         """
         Retrieve workouts from calendar events.
 

@@ -263,7 +263,8 @@ class RunWorkout(BaseWorkout):
                 lines.append(f"{block.repetitions}x")
             for step in block.steps:
                 line = f"- {step.duration}s {step.zone.to_value()}"
-                line += f"{step.description}"
+                if step.description:
+                    line += f" {step.description}"
                 lines.append(line)
             lines.append("")
         return "\n".join(lines)
