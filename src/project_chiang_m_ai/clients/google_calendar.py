@@ -136,6 +136,12 @@ class GoogleCalendarClient(ICalendarProvider):
         start_dt = datetime.datetime.fromisoformat(start_str.replace("Z", "+00:00"))
         end_dt = datetime.datetime.fromisoformat(end_str.replace("Z", "+00:00"))
 
+        # Normalize to timezone-aware (UTC) if tzinfo is missing
+        if start_dt.tzinfo is None:
+            start_dt = start_dt.replace(tzinfo=datetime.timezone.utc)
+        if end_dt.tzinfo is None:
+            end_dt = end_dt.replace(tzinfo=datetime.timezone.utc)
+
         return CalendarEvent(
             id=google_event.get("id", ""),
             summary=google_event.get("summary", ""),
