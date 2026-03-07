@@ -7,9 +7,11 @@ Handles authentication and workout uploads to Intervals.icu using native workout
 import base64
 
 import requests
+from dateutil import parser
 
 from project_chiang_m_ai.config import settings
 from project_chiang_m_ai.logger import logger
+from project_chiang_m_ai.models.strength_workout import StrengthWorkout
 from project_chiang_m_ai.models.workout import Workout
 
 BASE_URL = "https://intervals.icu/api/v1/athlete"
@@ -98,7 +100,7 @@ class IntervalicuClient:
         Upload a workout to Intervals.icu using native workout format.
 
         Args:
-            workout: Workout object (RunWorkout or RideWorkout)
+            workout: Workout object (RunWorkout, RideWorkout, or StrengthWorkout)
 
         Returns:
             dict: {"success": bool, "workout_id": int or None, "error": str or None}
@@ -113,34 +115,48 @@ class IntervalicuClient:
         url = f"{BASE_URL}/{athlete_id}/events"
 
         try:
-            # Format workout in native format
-            workout_description = cls.format_workout_native(workout)
-
             start_date = workout.start_date_local
             if start_date:
-                from dateutil import parser
-
                 dt_object = parser.isoparse(start_date)
                 start_date = dt_object.strftime("%Y-%m-%dT%H:%M:%S")
 
-            # Prepare event payload
-            event_payload = {
-                "start_date_local": start_date,
-                "category": "WORKOUT",
-                "name": workout.name,
-                "description": workout_description,
-                "type": workout.type,
-                "moving_time": workout.moving_time,
-            }
+            if isinstance(workout, StrengthWorkout):
+                workout_description = workout.to_intervals_description()
+
+                event_payload = {
+                    "start_date_local": start_date,
+                    "category": workout.category,
+                    "name": workout.name,
+                    "description": workout_description,
+                    "type": "WeightTraining",
+                }
+
+                logger.info(f"\n📝 Uploading strength workout: {workout.name}")
+                logger.info("\nWorkout structure:")
+                logger.info(workout_description)
+            else:
+                # Format workout in native format
+                workout_description = cls.format_workout_native(workout)
+
+                # Prepare event payload
+                event_payload = {
+                    "start_date_local": start_date,
+                    "category": "WORKOUT",
+                    "name": workout.name,
+                    "description": workout_description,
+                    "type": workout.type,
+                    "moving_time": workout.moving_time,
+                }
+
+                logger.info(f"\n📝 Uploading: {workout.name}")
+                logger.info("   Format: Intervals.icu native")
+                logger.info(f"   Duration: {workout.moving_time}s")
+                logger.info("\nWorkout structure:")
+                logger.info(workout_description)
 
             if workout.color:
                 event_payload["color"] = workout.color
 
-            logger.info(f"\n📝 Uploading: {workout.name}")
-            logger.info("   Format: Intervals.icu native")
-            logger.info(f"   Duration: {workout.moving_time}s")
-            logger.info("\nWorkout structure:")
-            logger.info(workout_description)
             logger.info(f"\n⬆️  Uploading to {url}")
 
             response = requests.post(url, headers=headers, json=event_payload)
