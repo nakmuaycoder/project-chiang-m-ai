@@ -84,6 +84,29 @@ def cmd_sync(args):
         sys.exit(1)
 
 
+def cmd_adapt(args):
+    """Adapt today's workouts based on wellness data."""
+    logger.info("=" * 70)
+    logger.info("🧠 LLM Coach - Adapt Workouts")
+    logger.info("=" * 70)
+    logger.info("")
+
+    # Initialize coach service
+    coach = CoachService(enable_tracking=True)
+
+    # Run adaptation
+    results = coach.adapt_daily_plan()
+
+    # Summary
+    logger.info("")
+    if results.get("success") and results.get("failed", 0) == 0:
+        logger.info("✅ Adaptation completed successfully!")
+        sys.exit(0)
+    else:
+        logger.warning("⚠️  Adaptation completed with errors")
+        sys.exit(1)
+
+
 def cmd_clean(args):
     """Clean up synced workouts from Intervals.icu."""
     from project_chiang_m_ai.services.workout_tracker import WorkoutSyncTracker
@@ -203,6 +226,9 @@ Examples:
   # Sync next 14 days
   python -m project_chiang_m_ai sync --days 14
 
+  # Adapt today's workouts using LLM based on wellness data
+  python -m project_chiang_m_ai adapt
+
   # Show status
   python -m project_chiang_m_ai status
 
@@ -253,6 +279,12 @@ Examples:
         "--list", action="store_true", help="List all synced workouts"
     )
     status_parser.set_defaults(func=cmd_status)
+
+    # Adapt command
+    adapt_parser = subparsers.add_parser(
+        "adapt", help="Adapt today's workouts based on wellness data"
+    )
+    adapt_parser.set_defaults(func=cmd_adapt)
 
     # Parse args
     args = parser.parse_args()

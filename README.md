@@ -31,13 +31,15 @@ You generate training plans with frontier LLMs (Gemini 3, ChatGPT 5.2), but gett
 Gemini/ChatGPT (plan generation)
     ↓ (copy JSON to calendar)
 Google Calendar
+    ↓ (daily wellness adaptation check)
+Project Chiang M-AI CLI (evaluates HRV/RHR & LLM adjusts workout if needed)
     ↓ (automated sync)
 Project Chiang M-AI CLI → Intervals.icu
     ↓ (automatic sync)
 Garmin Watch / Wahoo Computer / Smart Trainers
 ```
 
-**Intervals.icu** acts as the middleware, automatically syncing workouts to all major platforms (TrainingPeaks Virtual, Garmin Connect, Wahoo, etc.).
+**Intervals.icu** acts as the middleware for wellness data and syncing workouts to all major platforms (TrainingPeaks Virtual, Garmin Connect, Wahoo, etc.).
 
 ## 🚀 Quick Start
 
@@ -69,7 +71,14 @@ INTERVALS_API_KEY=your_intervals_key_here
 GOOGLE_CALENDAR_CREDENTIALS_FILE=path/to/credentials.json
 
 # Optional
+# Optional Settings
 PERIODIZATION=3:1  # or "2:1" (default: 3:1)
+
+# Wellness Adaptation (LLM dynamically modifies workouts based on fatigue)
+WELLNESS_HISTORY_DAYS=10
+LLM_PROVIDER=gemini
+LLM_MODEL=gemini-3.1-flash
+GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
 **Get your credentials:**
@@ -120,6 +129,16 @@ python -m project_chiang_m_ai sync --days 14
 # Dry run (parse but don't upload)
 python -m project_chiang_m_ai sync --block --dry-run
 ```
+
+### Wellness Adaptation
+
+**Let the LLM dynamically adjust your daily training based on Heart Rate Variability (HRV) and Resting Heart Rate (RHR) tracked in Intervals.icu.**
+
+```bash
+# Adapt today's planned workouts based on fatigue trends
+python -m project_chiang_m_ai adapt
+```
+If your readiness is low, the LLM will automatically replace intense VO2 max intervals with easy Z1/Z2 recovery or a rest day within your Google Calendar before syncing!
 
 ### Check Status
 
