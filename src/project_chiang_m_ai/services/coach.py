@@ -69,9 +69,18 @@ class CoachService:
         logger.info("=" * 70)
         logger.info("")
 
-        # Fetch events from Google Calendar
+        # Calculate date ranges
+        now = datetime.now(timezone.utc)
+        # now = datetime(2026, 2, 9, 0, 0, 0, tzinfo=timezone.utc)
+        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        today_end = today_start + timedelta(days=1)
+        future_limit = today_start + timedelta(days=days)
+
+        # Fetch events from Google Calendar starting from the beginning of today
         logger.info(f"📅 Fetching up to {max_results} upcoming events...")
-        events = self.calendar_client.list_upcoming_events(max_results=max_results)
+        events = self.calendar_client.list_upcoming_events(
+            max_results=max_results, time_min=today_start.isoformat()
+        )
         logger.info(f"✅ Found {len(events)} calendar events")
 
         # Filter for coach events
@@ -80,13 +89,6 @@ class CoachService:
         logger.info(
             f"   Found {len(coach_events)} coach events (before date filtering)"
         )
-
-        # Calculate date ranges
-        now = datetime.now(timezone.utc)
-        # now = datetime(2026, 2, 9, 0, 0, 0, tzinfo=timezone.utc)
-        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        today_end = today_start + timedelta(days=1)
-        future_limit = today_start + timedelta(days=days)
 
         # Filter by date based on sync_mode
         filtered_events = []
@@ -321,13 +323,15 @@ class CoachService:
             return {"success": False, "adapted": 0, "error": "No wellness data"}
 
         # 2. Fetch today's events from Calendar
-        logger.info("📅 Fetching today's events from Calendar...")
-        events = self.calendar_client.list_upcoming_events(max_results=20)
-        coach_events = [event for event in events if "coach" in event.summary.lower()]
-
         now = datetime.now(timezone.utc)
         today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         today_end = today_start + timedelta(days=1)
+
+        logger.info("📅 Fetching today's events from Calendar...")
+        events = self.calendar_client.list_upcoming_events(
+            max_results=20, time_min=today_start.isoformat()
+        )
+        coach_events = [event for event in events if "coach" in event.summary.lower()]
 
         today_coach_events = []
         for event in coach_events:

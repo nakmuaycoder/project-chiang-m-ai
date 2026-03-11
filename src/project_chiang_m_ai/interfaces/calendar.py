@@ -42,7 +42,10 @@ class ICalendarProvider(ABC):
 
     @abstractmethod
     def list_upcoming_events(
-        self, max_results: int = 10, calendar_id: str = "primary"
+        self,
+        max_results: int = 10,
+        calendar_id: str = "primary",
+        time_min: Optional[str] = None,
     ) -> List[CalendarEvent]:
         """
         List upcoming events from the calendar.
@@ -50,6 +53,8 @@ class ICalendarProvider(ABC):
         Args:
             max_results: Maximum number of events to return
             calendar_id: Calendar ID (default: primary)
+            time_min: Minimum start time string in ISO format.
+                      If None, defaults to current time.
 
         Returns:
             List of CalendarEvent objects

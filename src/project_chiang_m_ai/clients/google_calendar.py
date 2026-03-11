@@ -84,7 +84,10 @@ class GoogleCalendarClient(ICalendarProvider):
         self.service = build("calendar", "v3", credentials=self.creds)
 
     def list_upcoming_events(
-        self, max_results: int = 10, calendar_id: str = "primary"
+        self,
+        max_results: int = 10,
+        calendar_id: str = "primary",
+        time_min: Optional[str] = None,
     ) -> List[CalendarEvent]:
         """
         Lists specific upcoming events on the calendar.
@@ -92,12 +95,17 @@ class GoogleCalendarClient(ICalendarProvider):
         Args:
             max_results (int): Maximum number of events to fetch.
             calendar_id (str): Calendar ID to query. Defaults to 'primary'.
+            time_min (Optional[str]): The start time limit for events in ISO format.
+                                      Defaults to current UTC time.
 
         Returns:
             List[CalendarEvent]: A list of CalendarEvent objects.
         """
         try:
-            now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+            if time_min is None:
+                now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+            else:
+                now = time_min
             events_result = (
                 self.service.events()
                 .list(
