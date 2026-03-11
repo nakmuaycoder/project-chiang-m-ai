@@ -1,7 +1,8 @@
 """
 Intervals.icu Client
 
-Handles authentication and workout uploads to Intervals.icu using native workout format.
+Handles authentication, workout uploads to Intervals.icu using native workout format,
+and fetching athlete wellness data.
 """
 
 import base64
@@ -20,7 +21,8 @@ BASE_URL = "https://intervals.icu/api/v1/athlete"
 class IntervalicuClient:
     """
     Client for interacting with the Intervals.icu API.
-    Uploads workouts using Intervals.icu's native workout format.
+    Uploads workouts using Intervals.icu's native workout format
+    and fetches athlete wellness data.
     """
 
     @classmethod
@@ -216,3 +218,66 @@ class IntervalicuClient:
         except Exception as e:
             logger.error(f"❌ Unexpected error deleting {workout_id}: {e}")
             return {"success": False, "error": str(e)}
+
+    @classmethod
+    def get_wellness_history(cls, days: int = None) -> list[dict]:
+        """
+        Fetch wellness data (HRV, resting HR, etc.) for the last N days.
+
+        Args:
+            days: Number of days of history to fetch (default: from settings)
+
+        Returns:
+            list[dict]: List of wellness data dictionaries, chronologically ordered
+        """
+        if days is None:
+            days = settings.WELLNESS_HISTORY_DAYS
+
+        from datetime import datetime, timedelta, timezone
+
+        now = datetime.now(timezone.utc)
+        target_date = now - timedelta(days=days)
+
+        oldest = target_date.strftime("%Y-%m-%d")
+        newest = now.strftime("%Y-%m-%d")
+
+        auth_token = cls.encode_auth()
+        headers = {
+            "Authorization": f"Basic {auth_token}",
+        }
+
+        athlete_id = settings.INTERVALS_ATHLETE_ID
+        url = f"{BASE_URL}/{athlete_id}/wellness?oldest={oldest}&newest={newest}"
+
+        try:
+            logger.info(f"📊 Fetching wellness history for the last {days} days...")
+            response = requests.get(url, headers=headers)
+            response.raise_for_status()
+
+            wellness_data = response.json()
+
+            # Extract relevant metrics (date, hrv, resting_hr)
+            # to keep it concise for the LLM
+            history = []
+            for entry in wellness_data:
+                history.append(
+                    {
+                        # Intervals.icu uses "id" for the date string "YYYY-MM-DD"
+                        "date": entry.get("id"),
+                        "hrv": entry.get("hrv"),
+                        "resting_hr": entry.get("restingHR"),
+                    }
+                )
+
+            logger.info(f"✅ Found {len(history)} wellness records")
+            return history
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"❌ Error fetching wellness history: {e}")
+            if hasattr(e, "response") and e.response is not None:
+                logger.info(f"   Status: {e.response.status_code}")
+                logger.info(f"   Response: {e.response.text}")
+            return []
+        except Exception as e:
+            logger.error(f"❌ Unexpected error fetching wellness history: {e}")
+            return []
