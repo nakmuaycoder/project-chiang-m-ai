@@ -4,9 +4,9 @@ Strength Training Workout Model
 Simple format for Intervals.icu strength workouts
 """
 
-from typing import List, Literal, Optional
+from typing import Dict, List, Literal, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class StrengthExercise(BaseModel):
@@ -41,6 +41,10 @@ class StrengthWorkout(BaseModel):
     estimated_duration: Optional[int] = None  # in seconds
     color: Optional[str] = None
     category: str = "WORKOUT"
+    original_workout: Optional[Dict] = Field(
+        default=None,
+        description="The original macro-plan workout before LLM adaptation",
+    )
 
     def to_intervals_description(self) -> str:
         """

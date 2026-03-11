@@ -95,3 +95,20 @@ class ICalendarProvider(ABC):
             True if deleted successfully, False otherwise
         """
         pass
+
+    @abstractmethod
+    def update_event_description(
+        self, event_id: str, new_description: str, calendar_id: str = "primary"
+    ) -> Optional[CalendarEvent]:
+        """
+        Update the description of an event in the calendar.
+
+        Args:
+            event_id: Event ID to update
+            new_description: New description
+            calendar_id: Calendar ID (default: primary)
+
+        Returns:
+            Updated CalendarEvent or None if failed
+        """
+        pass
