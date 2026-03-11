@@ -69,6 +69,12 @@ class GeminiClient(ILlmClient):
             logger.info("✅ Gemini successfully returned an adapted workout.")
             return adapted_workout_json
 
+        except json.JSONDecodeError as e:
+            logger.error(f"❌ Failed to parse JSON response from Gemini: {e}")
+            # Log the raw response for debugging purposes if it exists
+            if "response_text" in locals():
+                logger.debug(f"Invalid JSON received: {response_text}")
+            return current_workout_json
         except Exception as e:
             logger.error(f"❌ Failed to get adapted workout from Gemini: {str(e)}")
             # In case of failure, we return the original workout as a fallback
