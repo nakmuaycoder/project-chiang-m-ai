@@ -1,6 +1,6 @@
 import re
 from enum import Enum
-from typing import Annotated, List, Literal, Optional, Union
+from typing import Annotated, Dict, List, Literal, Optional, Union
 
 from pydantic import (
     BaseModel,
@@ -226,6 +226,10 @@ class BaseWorkout(BaseModel):
     description: str
     steps: List[Steps]
     color: Optional[str] = None
+    original_workout: Optional[Dict] = Field(
+        default=None,
+        description="The original macro-plan workout before LLM adaptation",
+    )
 
     @property
     def moving_time(self):

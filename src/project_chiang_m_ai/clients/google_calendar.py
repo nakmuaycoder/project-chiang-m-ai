@@ -233,3 +233,41 @@ class GoogleCalendarClient(ICalendarProvider):
         except HttpError as error:
             logger.error(f"An error occurred: {error}")
             return False
+
+    def update_event_description(
+        self, event_id: str, new_description: str, calendar_id: str = "primary"
+    ) -> Optional[CalendarEvent]:
+        """
+        Updates the description of an existing event in the calendar.
+
+        Args:
+            event_id (str): The unique ID of the event to update.
+            new_description (str): The new description for the event.
+            calendar_id (str): Calendar ID. Defaults to 'primary'.
+
+        Returns:
+            Optional[CalendarEvent]: The updated CalendarEvent object,
+                or None if failed.
+        """
+        try:
+            # Retrieve the existing event
+            event = (
+                self.service.events()
+                .get(calendarId=calendar_id, eventId=event_id)
+                .execute()
+            )
+
+            # Update the description
+            event["description"] = new_description
+
+            # Save the updated event
+            updated_event = (
+                self.service.events()
+                .update(calendarId=calendar_id, eventId=event_id, body=event)
+                .execute()
+            )
+            logger.info(f"Event description updated: {event_id}")
+            return self._to_calendar_event(updated_event)
+        except HttpError as error:
+            logger.error(f"An error occurred while updating event description: {error}")
+            return None
