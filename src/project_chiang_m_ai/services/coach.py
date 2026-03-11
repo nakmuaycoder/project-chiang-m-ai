@@ -4,12 +4,17 @@ Coach Service
 Orchestrates the workflow of syncing workouts from Google Calendar to Intervals.icu.
 """
 
+import hashlib
+import html
 import json
+import sys
 import uuid
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List
 
 from project_chiang_m_ai.clients.google_calendar import GoogleCalendarClient
 from project_chiang_m_ai.clients.intervalicu import IntervalicuClient
+from project_chiang_m_ai.factory import get_llm_client
 from project_chiang_m_ai.interfaces.calendar import CalendarEvent
 from project_chiang_m_ai.logger import logger
 from project_chiang_m_ai.models.workout import Workout, WorkoutUnion
@@ -31,6 +36,10 @@ class CoachService:
         """
         self.calendar_client = GoogleCalendarClient()
         self.intervalicu_client = IntervalicuClient()
+
+        # Initialize LLM Client dynamically using factory
+        self.llm_client = get_llm_client()
+
         self.tracker = WorkoutSyncTracker() if enable_tracking else None
 
     def sync_from_calendar(
@@ -59,8 +68,6 @@ class CoachService:
         Returns:
             Dict with sync results including counts and any errors
         """
-        from datetime import datetime, timedelta, timezone
-
         logger.info("=" * 70)
         logger.info("🏋️  Starting workout sync from Google Calendar to Intervals.icu")
         logger.info("=" * 70)
@@ -154,8 +161,6 @@ class CoachService:
                 workout = self._parse_workout_from_event(event)
 
                 # Create workout signature for duplicate detection
-                import hashlib
-
                 # Hash the ENTIRE event description (JSON) for change detection
                 event_description = event.description or ""
                 description_hash = hashlib.md5(
@@ -298,6 +303,133 @@ class CoachService:
 
         return results
 
+    def adapt_daily_plan(self) -> Dict[str, Any]:
+        """
+        Adapt today's scheduled workouts based on recent wellness data using the LLM.
+
+        This method:
+        1. Fetches recent wellness data (HRV, RHR) from Intervals.icu
+        2. Fetches today's upcoming events from Google Calendar
+        3. Sends the data to Gemini to get modified workouts
+        4. Updates the Calendar events with the new workout payloads
+        """
+        logger.info("=" * 70)
+        logger.info("🧠  Starting daily plan adaptation based on Wellness Data")
+        logger.info("=" * 70)
+        logger.info("")
+
+        # 1. Fetch recent wellness data
+        wellness_history = self.intervalicu_client.get_wellness_history()
+        if not wellness_history:
+            logger.warning("⚠️  Could not fetch wellness data. Aborting adaptation.")
+            return {"success": False, "adapted": 0, "error": "No wellness data"}
+
+        # 2. Fetch today's events from Calendar
+        logger.info("📅 Fetching today's events from Calendar...")
+        events = self.calendar_client.list_upcoming_events(max_results=20)
+        coach_events = [event for event in events if "coach" in event.summary.lower()]
+
+        now = datetime.now(timezone.utc)
+        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        today_end = today_start + timedelta(days=1)
+
+        today_coach_events = []
+        for event in coach_events:
+            # Handle if event.start is somehow not timezone aware or missing
+            if event.start and today_start <= event.start < today_end:
+                today_coach_events.append(event)
+
+        if not today_coach_events:
+            logger.info("✅ No coach events found for today. Nothing to adapt.")
+            return {"success": True, "adapted": 0, "failed": 0, "errors": []}
+
+        logger.info(
+            f"🎯 Found {len(today_coach_events)} coach events today to evaluate."
+        )
+
+        results = {"success": True, "adapted": 0, "failed": 0, "errors": []}
+
+        for event in today_coach_events:
+            logger.info(f"\nEvaluating event: {event.summary}")
+            description = (event.description or "").strip()
+
+            if not description:
+                logger.warning(
+                    f"⚠️ Event '{event.summary}' missing description. Skipping."
+                )
+                continue
+
+            try:
+                # Decode HTML entities and parse JSON payload
+                description = html.unescape(description)
+                original_workout_json = json.loads(description)
+
+                # Check if it was already adapted today
+                if (
+                    "original_workout" in original_workout_json
+                    and original_workout_json["original_workout"]
+                ):
+                    logger.info(
+                        "⏭️  This workout has already been adapted by the LLM. Skipping."
+                    )
+                    continue
+
+                # 3. Call LLM to adapt the workout
+                adapted_workout_json = self.llm_client.adapt_workout(
+                    current_workout_json=original_workout_json,
+                    wellness_history=wellness_history,
+                )
+
+                # Make sure the LLM actually returned a valid dict
+                if not adapted_workout_json:
+                    logger.info("✅ LLM returned empty data. Skipping.")
+                    continue
+
+                # 4. Integrate the original workout text into the adapted struct
+                adapted_workout_json["original_workout"] = original_workout_json
+
+                # Update event in Calendar
+                new_description = json.dumps(adapted_workout_json, indent=2)
+
+                logger.info(
+                    f"📝 Updating Calendar Event '{event.summary}' with adapted data..."
+                )
+                updated_event = self.calendar_client.update_event_description(
+                    event_id=event.id, new_description=new_description
+                )
+
+                if updated_event:
+                    logger.info("✨ Successfully adapted workout and updated calendar.")
+                    results["adapted"] += 1
+                else:
+                    logger.error("❌ Failed to update the calendar event.")
+                    results["failed"] += 1
+                    results["errors"].append(f"Failed to update {event.id}")
+
+            except json.JSONDecodeError:
+                logger.error(
+                    f"❌ Failed to parse JSON description for event '{event.summary}'"
+                )
+                results["failed"] += 1
+                results["errors"].append(f"JSON Decode Error on {event.id}")
+            except Exception as e:
+                logger.error(f"❌ Error during adaptation for '{event.summary}': {e}")
+                results["failed"] += 1
+                results["errors"].append(str(e))
+
+        # Print summary
+        logger.info(f"\n{'=' * 70}")
+        logger.info("📊 ADAPTATION SUMMARY")
+        logger.info(f"{'=' * 70}")
+        logger.info(f"Total events evaluated: {len(today_coach_events)}")
+        logger.info(f"✅ Successfully adapted: {results['adapted']}")
+        if results["failed"] > 0:
+            logger.error(f"❌ Failed: {results['failed']}")
+
+        logger.info(f"{'=' * 70}\n")
+
+        return results
+
     def cleanup_deleted_events(
         self, calendar_events: List[CalendarEvent] = None
     ) -> Dict[str, Any]:
@@ -432,8 +564,6 @@ class CoachService:
 
         try:
             # Decode HTML entities (Google Calendar may escape quotes as &quot;)
-            import html
-
             description = html.unescape(description)
 
             # Parse JSON from event description
@@ -473,17 +603,23 @@ class CoachService:
 
 if __name__ == "__main__":
     """
-    CLI entry point for manual sync testing.
+    CLI entry point for manual sync/adaptation testing.
 
     Usage:
-        python -m project_chiang_m_ai.services.coach
+        python -m project_chiang_m_ai.services.coach [adapt|sync]
     """
-    logger.info("🏋️  LLM Coach - Calendar to Intervals.icu Sync\n")
+    action = sys.argv[1].lower() if len(sys.argv) > 1 else "sync"
+
+    logger.info("🏋️  LLM Coach - Calendar to Intervals.icu Orchestrator\n")
 
     coach_service = CoachService()
 
-    # Run sync (use dry_run=True to test without uploading)
-    results = coach_service.sync_from_calendar(max_results=28, days=28, dry_run=False)
+    if action == "adapt":
+        results = coach_service.adapt_daily_plan()
+    else:
+        results = coach_service.sync_from_calendar(
+            max_results=28, days=28, dry_run=False
+        )
 
     # Exit with appropriate code
-    exit(0 if results["success"] and results["failed"] == 0 else 1)
+    exit(0 if results.get("success") and results.get("failed", 0) == 0 else 1)
