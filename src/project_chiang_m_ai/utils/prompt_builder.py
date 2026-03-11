@@ -16,9 +16,8 @@ class PromptBuilder:
         """Returns the absolute path to a prompt template."""
         # Calculate path relative to this file
         # This file: src/project_chiang_m_ai/utils/prompt_builder.py
-        base_dir = os.path.dirname(
-            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        )
+        # The project root is 4 levels up from this file's location.
+        base_dir = Path(__file__).resolve().parents[3]
         return os.path.join(base_dir, "templates", template_name)
 
     @classmethod
