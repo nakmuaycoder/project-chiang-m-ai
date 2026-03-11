@@ -14,7 +14,6 @@ from typing import Any, Dict, List
 
 from project_chiang_m_ai.clients.google_calendar import GoogleCalendarClient
 from project_chiang_m_ai.clients.intervalicu import IntervalicuClient
-from project_chiang_m_ai.factory import get_llm_client
 from project_chiang_m_ai.interfaces.calendar import CalendarEvent
 from project_chiang_m_ai.logger import logger
 from project_chiang_m_ai.models.workout import Workout, WorkoutUnion
@@ -36,9 +35,6 @@ class CoachService:
         """
         self.calendar_client = GoogleCalendarClient()
         self.intervalicu_client = IntervalicuClient()
-
-        # Initialize LLM Client dynamically using factory
-        self.llm_client = get_llm_client()
 
         self.tracker = WorkoutSyncTracker() if enable_tracking else None
 
@@ -375,7 +371,11 @@ class CoachService:
                     continue
 
                 # 3. Call LLM to adapt the workout
-                adapted_workout_json = self.llm_client.adapt_workout(
+                from project_chiang_m_ai.factory import get_llm_client
+
+                llm_client = get_llm_client()
+
+                adapted_workout_json = llm_client.adapt_workout(
                     current_workout_json=original_workout_json,
                     wellness_history=wellness_history,
                 )
