@@ -23,23 +23,23 @@ class GeminiClient(ILlmClient):
         # Use the official SDK with the configured API key
         self.client = genai.Client(api_key=settings.GEMINI_API_KEY.get_secret_value())
 
-    def adapt_workout(
-        self, current_workout_json: Dict, wellness_history: List[Dict]
-    ) -> Dict:
+    def adapt_daily_workouts(
+        self, daily_workouts_json: List[Dict], wellness_history: List[Dict]
+    ) -> List[Dict]:
         """
-        Send the current workout and the wellness history to Gemini to generate
-        an adapted training session.
+        Send all scheduled workouts for the day and wellness history to Gemini
+        to generate adapted training sessions.
 
         Args:
-            current_workout_json (Dict): The original workout parsed from Calendar.
+            daily_workouts_json (List[Dict]): Original workouts parsed from Calendar.
             wellness_history (List[Dict]): The raw wellness data from Intervals.icu
 
         Returns:
-            Dict: The adapted workout JSON.
+            List[Dict]: The adapted workouts JSON.
         """
         # Build formatted prompts using the PromptBuilder
         system_instructions, user_prompt = PromptBuilder.build_adaptation_prompts(
-            current_workout_json=current_workout_json,
+            daily_workouts_json=daily_workouts_json,
             wellness_history=wellness_history,
         )
 
@@ -61,21 +61,21 @@ class GeminiClient(ILlmClient):
             response_text = response.text.strip()
 
             # The API should guarantee JSON response natively due to response_mime_type
-            adapted_workout_json = json.loads(response_text)
+            adapted_workouts_json = json.loads(response_text)
 
             # We want to keep track of the original workout, but we do that
             # in the orchestrator so it accurately wraps the true original JSON.
             # Here we just return the adapted structure.
-            logger.info("✅ Gemini successfully returned an adapted workout.")
-            return adapted_workout_json
+            logger.info("✅ Gemini successfully returned adapted workouts for the day.")
+            return adapted_workouts_json
 
         except json.JSONDecodeError as e:
             logger.error(f"❌ Failed to parse JSON response from Gemini: {e}")
             # Log the raw response for debugging purposes if it exists
             if "response_text" in locals():
                 logger.debug(f"Invalid JSON received: {response_text}")
-            return current_workout_json
+            return daily_workouts_json
         except Exception as e:
-            logger.error(f"❌ Failed to get adapted workout from Gemini: {str(e)}")
-            # In case of failure, we return the original workout as a fallback
-            return current_workout_json
+            logger.error(f"❌ Failed to get adapted workouts from Gemini: {str(e)}")
+            # In case of failure, we return the original workouts as a fallback
+            return daily_workouts_json

@@ -9,18 +9,18 @@ class ILlmClient(ABC):
     """
 
     @abstractmethod
-    def adapt_workout(
-        self, current_workout_json: Dict, wellness_history: List[Dict]
-    ) -> Dict:
+    def adapt_daily_workouts(
+        self, daily_workouts_json: List[Dict], wellness_history: List[Dict]
+    ) -> List[Dict]:
         """
-        Send the current workout and the wellness history to the LLM to generate
-        an adapted training session.
+        Send all scheduled workouts for the day and the wellness history to the LLM
+        to generate adapted training sessions.
 
         Args:
-            current_workout_json (Dict): The original workout parsed from Calendar.
+            daily_workouts_json (List[Dict]): Original workouts parsed from Calendar.
             wellness_history (List[Dict]): The raw wellness data from Intervals.icu
 
         Returns:
-            Dict: The adapted workout JSON.
+            List[Dict]: The adapted workouts JSONs in the same order.
         """
         pass

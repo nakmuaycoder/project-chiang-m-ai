@@ -1,7 +1,7 @@
 Here is the wellness history over the last few days:
 {wellness_history}
 
-Here is the original scheduled workout for today:
-{workout_json}
+Here are the original scheduled workouts for today:
+{workouts_json}
 
-Provide the adapted workout JSON now:
+Provide the adapted workouts JSON array now:

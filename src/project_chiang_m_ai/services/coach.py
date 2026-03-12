@@ -349,10 +349,12 @@ class CoachService:
 
         results = {"success": True, "adapted": 0, "failed": 0, "errors": []}
 
-        for event in today_coach_events:
-            logger.info(f"\nEvaluating event: {event.summary}")
-            description = (event.description or "").strip()
+        # Gather all valid workouts for the day
+        daily_workouts_payload = []
+        valid_events = []
 
+        for event in today_coach_events:
+            description = (event.description or "").strip()
             if not description:
                 logger.warning(
                     f"⚠️ Event '{event.summary}' missing description. Skipping."
@@ -360,36 +362,79 @@ class CoachService:
                 continue
 
             try:
-                # Decode HTML entities and parse JSON payload
                 description = html.unescape(description)
-                original_workout_json = json.loads(description)
+                workout_json = json.loads(description)
 
-                # Check if it was already adapted today
+                # If already adapted, extract true original for clean context
                 if (
-                    "original_workout" in original_workout_json
-                    and original_workout_json["original_workout"]
+                    isinstance(workout_json, dict)
+                    and "original_workout" in workout_json
                 ):
-                    logger.info(
-                        "⏭️  This workout has already been adapted by the LLM. Skipping."
+                    workout_json = workout_json["original_workout"]
+
+                daily_workouts_payload.append(workout_json)
+                valid_events.append(event)
+            except json.JSONDecodeError:
+                logger.error(
+                    f"❌ Failed to parse JSON description for event '{event.summary}'"
+                )
+                results["failed"] += 1
+                results["errors"].append(f"JSON Decode Error on {event.id}")
+
+        if not daily_workouts_payload:
+            logger.info("✅ No valid JSON workouts found for today. Nothing to adapt.")
+            return results
+
+        logger.info(
+            f"🚀 Sending {len(daily_workouts_payload)} workouts "
+            "to the LLM for context-aware adaptation."
+        )
+
+        # Call LLM to adapt the workouts
+        try:
+            from project_chiang_m_ai.factory import get_llm_client
+
+            llm_client = get_llm_client()
+
+            adapted_workouts_json = llm_client.adapt_daily_workouts(
+                daily_workouts_json=daily_workouts_payload,
+                wellness_history=wellness_history,
+            )
+        except Exception as e:
+            logger.error(f"❌ Error communicating with LLM: {e}")
+            return {
+                "success": False,
+                "adapted": 0,
+                "failed": len(valid_events),
+                "errors": [str(e)],
+            }
+
+        if not adapted_workouts_json or not isinstance(adapted_workouts_json, list):
+            logger.error("❌ LLM returned invalid array data. Skipping.")
+            return {
+                "success": False,
+                "adapted": 0,
+                "failed": len(valid_events),
+                "errors": ["Invalid array returned by LLM"],
+            }
+
+        for idx, event in enumerate(valid_events):
+            try:
+                # We expect the LLM to return exactly the same number of elements
+                if idx >= len(adapted_workouts_json):
+                    raise IndexError("LLM returned fewer workouts than expected.")
+
+                adapted_workout_json = adapted_workouts_json[idx]
+                original_workout_json = daily_workouts_payload[idx]
+
+                # Make sure the LLM actually returned a valid dict
+                if not isinstance(adapted_workout_json, dict):
+                    logger.warning(
+                        f"⚠️ Adapted element {idx} is not a valid dict. Skipping."
                     )
                     continue
 
-                # 3. Call LLM to adapt the workout
-                from project_chiang_m_ai.factory import get_llm_client
-
-                llm_client = get_llm_client()
-
-                adapted_workout_json = llm_client.adapt_workout(
-                    current_workout_json=original_workout_json,
-                    wellness_history=wellness_history,
-                )
-
-                # Make sure the LLM actually returned a valid dict
-                if not adapted_workout_json:
-                    logger.info("✅ LLM returned empty data. Skipping.")
-                    continue
-
-                # 4. Integrate the original workout text into the adapted struct
+                # Integrate the original workout text into the adapted struct
                 adapted_workout_json["original_workout"] = original_workout_json
 
                 # Update event in Calendar
@@ -410,14 +455,10 @@ class CoachService:
                     results["failed"] += 1
                     results["errors"].append(f"Failed to update {event.id}")
 
-            except json.JSONDecodeError:
-                logger.error(
-                    f"❌ Failed to parse JSON description for event '{event.summary}'"
-                )
-                results["failed"] += 1
-                results["errors"].append(f"JSON Decode Error on {event.id}")
             except Exception as e:
-                logger.error(f"❌ Error during adaptation for '{event.summary}': {e}")
+                logger.error(
+                    f"❌ Error during adaptation patching for '{event.summary}': {e}"
+                )
                 results["failed"] += 1
                 results["errors"].append(str(e))
 

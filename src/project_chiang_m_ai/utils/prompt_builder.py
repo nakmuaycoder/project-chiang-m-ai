@@ -34,13 +34,13 @@ class PromptBuilder:
 
     @classmethod
     def build_adaptation_prompts(
-        cls, current_workout_json: Dict, wellness_history: List[Dict]
+        cls, daily_workouts_json: List[Dict], wellness_history: List[Dict]
     ) -> Tuple[str, str]:
         """
-        Builds the system and user prompts for workout adaptation.
+        Builds the system and user prompts for daily workouts adaptation.
 
         Args:
-            current_workout_json: Original workout JSON.
+            daily_workouts_json: List of original workout JSONs for the day.
             wellness_history: Athlete's wellness history.
 
         Returns:
@@ -49,25 +49,27 @@ class PromptBuilder:
         # 1. System Prompt
         system_fallback = (
             "You are an expert endurance and strength coach. "
-            "Output ONLY valid JSON matching the input structure."
+            "Output ONLY valid JSON matching the input structure. "
+            "You will receive an array of workouts for the day, and you must "
+            "return an array of adapted workouts in the EXACT identical order."
         )
         system_instructions = cls._read_template(
-            "prompts/workout_adaptation/system.txt", system_fallback
+            "prompts/workout_adaptation/llm_system_prompt.txt", system_fallback
         )
 
         # 2. User Prompt
         user_fallback = (
             "Wellness history:\n{wellness_history}\n\n"
-            "Workout:\n{workout_json}\n\nUpdate it:"
+            "Daily Workouts:\n{workouts_json}\n\nUpdate them:"
         )
         user_template_str = cls._read_template(
-            "prompts/workout_adaptation/user.txt", user_fallback
+            "prompts/workout_adaptation/llm_user_prompt.txt", user_fallback
         )
 
         # Format variables into the user prompt string
         user_prompt = user_template_str.format(
             wellness_history=json.dumps(wellness_history, indent=2),
-            workout_json=json.dumps(current_workout_json, indent=2),
+            workouts_json=json.dumps(daily_workouts_json, indent=2),
         )
 
         return system_instructions, user_prompt
