@@ -8,10 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **LLM Wellness Adaptation**: The AI Coach can now dynamically adapt your daily scheduled workouts based on recent Health & Readiness data (HRV and RHR) from Intervals.icu before syncing.
-- Added `python -m project_chiang_m_ai adapt` command to run the wellness adjustment logic.
-- Integration with the `google-genai` package for interacting with Gemini APIs natively.
-- Added a highly flexible PromptBuilder for templates management, allowing for separation of code and prompt text logic.
-- Implemented `ILlmClient` interface so developers can seamlessly plug in alternative AI backends like Anthropic Claude or OpenAI ChatGPT.
-- Added `.env` configuration for `LLM_PROVIDER`, `LLM_MODEL`, `GEMINI_API_KEY`, and `WELLNESS_HISTORY_DAYS`.
-- Modified Pydantic model structure to wrap the `original_workout` under the hood dynamically whenever a workout is transformed by the LLM.
+- **Modular Architecture (Brain vs. Platform)**: Decoupled workout decision logic (`IBrain`) from data storage/sync logic (`ISportPlatform`).
+- **Local Testing Support**: Added `LocalArchivePlatform` to save workouts as local JSON files for safer testing and AI output comparison.
+- **Factory Pattern**: Implemented `get_brain()` and `get_platform()` for flexible dependency injection based on configuration.
+- **YAML Configuration**: Introduced `coach_config.yaml` to manage modular components and sync modes centrally.
+- **Stable Tracking**: Switched from fragile name-based IDs to stable source IDs (e.g., Google Calendar Event IDs) to prevent duplicate workouts when renaming events.
+- **Calendar Base Intelligence**: Extracted shared logic for calendar fetching, filtering, and parsing into a reusable `CalendarBaseBrain`.
+
+### Changed
+- Refactored `CoachService` to be implementation-agnostic, using injected `IBrain` and `ISportPlatform` instances.
+- Updated `AutoAdaptiveBrain` and `GoogleCalendarBrain` to inherit from `CalendarBaseBrain` (DRY).
+- Improved error handling for Pydantic validation and JSON parsing across all brain implementations.
+
+### Fixed
+- Restored `cleanup_orphaned_workouts` functionality within the new modular architecture.
+- Fixed a bug where renaming a workout in the source would lead to a duplicate on the platform.
+- Resolved various Ruff linting issues (E501 line length).
