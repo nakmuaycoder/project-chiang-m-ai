@@ -54,7 +54,7 @@ class LocalArchivePlatform(ISportPlatform):
             logger.info(f"✅ [LocalArchivePlatform] Saved workout to {filepath}")
             return {"success": True, "workout_id": filename, "error": None}
 
-        except Exception as e:
+        except (OSError, TypeError) as e:
             logger.error(f"❌ [LocalArchivePlatform] Error saving workout: {e}")
             return {"success": False, "workout_id": None, "error": str(e)}
 
@@ -65,9 +65,15 @@ class LocalArchivePlatform(ISportPlatform):
         filepath = self.output_dir / str(workout_id)
 
         if filepath.exists():
-            filepath.unlink()
-            logger.info(f"✅ [LocalArchivePlatform] Mock deleted file {filepath}")
-            return {"success": True, "error": None}
+            try:
+                filepath.unlink()
+                logger.info(f"✅ [LocalArchivePlatform] Mock deleted file {filepath}")
+                return {"success": True, "error": None}
+            except OSError as e:
+                logger.error(
+                    f"❌ [LocalArchivePlatform] Error deleting file {filepath}: {e}"
+                )
+                return {"success": False, "error": str(e)}
         else:
             logger.warning(
                 f"⚠️ [LocalArchivePlatform] File not found for deletion: {filepath}"
