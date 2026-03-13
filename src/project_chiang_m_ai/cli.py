@@ -66,13 +66,14 @@ def cmd_sync(args):
     logger.info("")
 
     # Initialize coach service
-    coach = CoachService(enable_tracking=True)
+    from project_chiang_m_ai.factory import get_brain, get_platform
+
+    brain = get_brain(sync_mode=mode, days=days)
+    platform = get_platform()
+    coach = CoachService(brain=brain, platform=platform, enable_tracking=True)
 
     # Run sync
-    max_results = min(days * 3, 150)  # Fetch enough events (3 per day max)
-    results = coach.sync_from_calendar(
-        max_results=max_results, sync_mode=mode, days=days, dry_run=args.dry_run
-    )
+    results = coach.sync_workouts(dry_run=args.dry_run)
 
     # Summary
     logger.info("")
@@ -92,10 +93,24 @@ def cmd_adapt(args):
     logger.info("")
 
     # Initialize coach service
-    coach = CoachService(enable_tracking=True)
+    from project_chiang_m_ai.brains.auto_brain import AutoAdaptiveBrain
+    from project_chiang_m_ai.factory import (
+        get_calendar_provider,
+        get_llm_client,
+        get_platform,
+    )
+
+    brain = AutoAdaptiveBrain(
+        calendar_client=get_calendar_provider(),
+        llm_client=get_llm_client(),
+        sync_mode="today",
+        days=1,
+    )
+    platform = get_platform()
+    coach = CoachService(brain=brain, platform=platform, enable_tracking=True)
 
     # Run adaptation
-    results = coach.adapt_daily_plan()
+    results = coach.sync_workouts(dry_run=False)
 
     # Summary
     logger.info("")

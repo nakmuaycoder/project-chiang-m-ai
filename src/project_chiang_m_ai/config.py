@@ -1,7 +1,22 @@
 from pathlib import Path
+from typing import Any, Dict
 
+import yaml
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def load_coach_config(yaml_path: str = "coach_config.yaml") -> Dict[str, Any]:
+    """Loads and parses the coach configuration YAML."""
+    path = Path(yaml_path)
+    if not path.exists():
+        return {}
+
+    with open(path, "r", encoding="utf-8") as f:
+        return yaml.safe_load(f) or {}
+
+
+coach_config = load_coach_config()
 
 
 class Settings(BaseSettings):

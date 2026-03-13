@@ -1,0 +1,15 @@
+# coach_config.yaml
+# Main configuration file for LLM Coach
+
+coach:
+  brain:
+    type: "manual" # Or "auto", "mock"
+    source: "google_calendar"
+    llm_enabled: false
+
+  destination:
+    type: "intervals_icu" # Or "local_storage"
+    path: "./data/runs" # Used when type is local_storage
+
+  tracking:
+    db_path: "data/workout_sync_history.json"

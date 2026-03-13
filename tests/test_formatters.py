@@ -20,7 +20,7 @@ def test_intervals_run_ride_formatter():
     }
 
     workout = Workout(**payload)
-    native_format = IntervalicuClient.format_workout_native(workout)
+    native_format = IntervalicuClient().format_workout_native(workout)
 
     # 2 blocks x 2 steps = 4 lines generated
     assert "- 10m in 60% - 70%" in native_format
