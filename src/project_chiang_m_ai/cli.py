@@ -9,6 +9,7 @@ import argparse
 import sys
 
 from project_chiang_m_ai.config import settings
+from project_chiang_m_ai.factory import get_brain, get_platform
 from project_chiang_m_ai.logger import logger
 from project_chiang_m_ai.services.coach import CoachService
 
@@ -66,8 +67,6 @@ def cmd_sync(args):
     logger.info("")
 
     # Initialize coach service
-    from project_chiang_m_ai.factory import get_brain, get_platform
-
     brain = get_brain(sync_mode=mode, days=days)
     platform = get_platform()
     coach = CoachService(brain=brain, platform=platform, enable_tracking=True)
@@ -93,7 +92,6 @@ def cmd_adapt(args):
     logger.info("")
 
     # Initialize coach service — brain type comes from coach_config.yaml
-    from project_chiang_m_ai.factory import get_brain, get_platform
 
     # adapt always targets today, regardless of YAML brain type
     brain = get_brain(sync_mode="today", days=1)
