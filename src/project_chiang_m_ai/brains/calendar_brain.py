@@ -63,7 +63,7 @@ class GoogleCalendarBrain(IBrain):
             try:
                 workout = self._parse_workout_from_event(event)
                 final_workouts.append(workout)
-            except Exception as e:
+            except (ValueError, json.JSONDecodeError) as e:
                 logger.error(f"❌ Error parsing workout from '{event.summary}': {e}")
 
         logger.info(
