@@ -83,8 +83,8 @@ class AutoAdaptiveBrain(IBrain):
 
                 daily_workouts_payload.append(workout_json)
                 valid_events.append(event)
-            except json.JSONDecodeError:
-                pass
+            except json.JSONDecodeError as e:
+                logger.warning(f"Failed to parse JSON for event '{event.summary}': {e}")
 
         if not daily_workouts_payload:
             return []
