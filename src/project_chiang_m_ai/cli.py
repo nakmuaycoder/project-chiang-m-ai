@@ -9,6 +9,7 @@ import argparse
 import sys
 
 from project_chiang_m_ai.config import settings
+from project_chiang_m_ai.factory import get_brain, get_platform
 from project_chiang_m_ai.logger import logger
 from project_chiang_m_ai.services.coach import CoachService
 
@@ -66,13 +67,12 @@ def cmd_sync(args):
     logger.info("")
 
     # Initialize coach service
-    coach = CoachService(enable_tracking=True)
+    brain = get_brain(sync_mode=mode, days=days)
+    platform = get_platform()
+    coach = CoachService(brain=brain, platform=platform, enable_tracking=True)
 
     # Run sync
-    max_results = min(days * 3, 150)  # Fetch enough events (3 per day max)
-    results = coach.sync_from_calendar(
-        max_results=max_results, sync_mode=mode, days=days, dry_run=args.dry_run
-    )
+    results = coach.sync_workouts(dry_run=args.dry_run)
 
     # Summary
     logger.info("")
@@ -91,11 +91,15 @@ def cmd_adapt(args):
     logger.info("=" * 70)
     logger.info("")
 
-    # Initialize coach service
-    coach = CoachService(enable_tracking=True)
+    # Initialize coach service — brain type comes from coach_config.yaml
+
+    # adapt always targets today, regardless of YAML brain type
+    brain = get_brain(sync_mode="today", days=1)
+    platform = get_platform()
+    coach = CoachService(brain=brain, platform=platform, enable_tracking=True)
 
     # Run adaptation
-    results = coach.adapt_daily_plan()
+    results = coach.sync_workouts(dry_run=False)
 
     # Summary
     logger.info("")

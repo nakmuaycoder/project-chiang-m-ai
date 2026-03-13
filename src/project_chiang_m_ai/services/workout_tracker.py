@@ -16,7 +16,6 @@ from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 
 from project_chiang_m_ai.config import settings
-from project_chiang_m_ai.interfaces.calendar import CalendarEvent
 from project_chiang_m_ai.logger import logger
 
 
@@ -119,7 +118,9 @@ class WorkoutSyncTracker:
 
     def record_sync(
         self,
-        calendar_event: CalendarEvent,
+        source_id: str,
+        source_name: str,
+        source_date: str,
         workout_name: str,
         workout_type: str,
         workout_hash: str,
@@ -131,25 +132,21 @@ class WorkoutSyncTracker:
         Record a workout sync.
 
         Args:
-            calendar_event: CalendarEvent object
+            source_id: Unique ID of the source event/workout
+            source_name: Name of the source event
+            source_date: Start date/time of the source event
             workout_name: Name of the workout
             workout_type: Type (Run, Ride, WeightTraining)
             workout_hash: Hash of workout content
             sync_session_id: Unique ID for this sync session
-            intervalicu_id: Intervals.icu workout ID (if upload succeeded)
+            intervalicu_id: Intervals.icu (or platform) workout ID (if upload succeeded)
             status: Sync status (uploaded, failed, etc.)
 
         Returns:
             WorkoutMapping record
         """
-        # Extract calendar event info from CalendarEvent object
-        event_id = calendar_event.id
-        event_summary = calendar_event.summary
-        # event.start is already a datetime object
-        start_time = calendar_event.start.isoformat()
-
         # Check if this event was already synced
-        existing = self.history.find_by_calendar_id(event_id)
+        existing = self.history.find_by_calendar_id(source_id)
 
         if existing:
             # Update existing mapping
@@ -160,18 +157,18 @@ class WorkoutSyncTracker:
                 existing.synced_at = datetime.now().isoformat()
                 if intervalicu_id:
                     existing.intervalicu_id = intervalicu_id
-                logger.info(f"   📝 Updated mapping for calendar event: {event_id}")
+                logger.info(f"   📝 Updated mapping for source event: {source_id}")
             else:
-                logger.info(f"   ℹ️  Mapping already exists (no changes): {event_id}")
+                logger.info(f"   ℹ️  Mapping already exists (no changes): {source_id}")
 
             self._save_history()
             return existing
 
         # Create new mapping
         mapping = WorkoutMapping(
-            calendar_event_id=event_id,
-            calendar_event_summary=event_summary,
-            calendar_event_start=start_time,
+            calendar_event_id=source_id,
+            calendar_event_summary=source_name,
+            calendar_event_start=source_date,
             intervalicu_id=intervalicu_id,
             intervalicu_name=workout_name,
             intervalicu_type=workout_type,
@@ -185,7 +182,7 @@ class WorkoutSyncTracker:
         self._save_history()
 
         logger.info(
-            f"   💾 Recorded sync: {event_summary} → Intervals.icu ID {intervalicu_id}"
+            f"   💾 Recorded sync: {source_name} → Platform ID {intervalicu_id}"
         )
 
         return mapping
@@ -235,30 +232,17 @@ class WorkoutSyncTracker:
 
 # Example usage
 if __name__ == "__main__":
-    import hashlib
-
-    from project_chiang_m_ai.interfaces.calendar import CalendarEvent
-
     tracker = WorkoutSyncTracker()
 
     # Example: Record a sync
     start_dt = datetime.fromisoformat("2026-02-05T07:00:00+01:00")
-    fake_event_obj = CalendarEvent(
-        id="abc123",
-        summary="[Coach] Morning Run",
-        start=start_dt,
-        end=start_dt,
-        description="Easy run with strides",
-    )
-
-    workout_content = "Easy run with strides"
-    workout_hash = hashlib.md5(workout_content.encode()).hexdigest()[:8]
-
     mapping = tracker.record_sync(
-        calendar_event=fake_event_obj,
+        source_id="abc123",
+        source_name="[Coach] Morning Run",
+        source_date=start_dt.isoformat(),
         workout_name="Morning Run",
         workout_type="Run",
-        workout_hash=workout_hash,
+        workout_hash="test_hash",
         sync_session_id="test_session_1",
         intervalicu_id=12345,
         status="uploaded",

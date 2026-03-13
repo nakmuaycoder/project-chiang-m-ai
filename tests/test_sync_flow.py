@@ -1,19 +1,17 @@
-import json
 from datetime import datetime, timedelta, timezone
-from unittest.mock import patch
+from unittest.mock import MagicMock
 
-from project_chiang_m_ai.interfaces.calendar import CalendarEvent
+from project_chiang_m_ai.interfaces.brain import WorkoutWithSource
+from project_chiang_m_ai.models.workout import Workout
 from project_chiang_m_ai.services.coach import CoachService
 
 
-@patch("project_chiang_m_ai.services.coach.IntervalicuClient")
-@patch("project_chiang_m_ai.services.coach.GoogleCalendarClient")
-def test_sync_from_calendar_success(mock_google_cal_cls, mock_intervalicu_cls):
-    """Test syncing a valid workout from the calendar straight to an API mock."""
-    mock_calendar_client = mock_google_cal_cls.return_value
-    mock_intervalicu_client = mock_intervalicu_cls.return_value
+def test_sync_from_calendar_success():
+    """Test syncing a valid workout from the brain straight to an API mock."""
+    mock_brain = MagicMock()
+    mock_platform = MagicMock()
 
-    # Setup simulated calendar event
+    # Setup simulated brain result
     now = datetime.now(timezone.utc)
     future_date = now + timedelta(days=2)
 
@@ -27,25 +25,23 @@ def test_sync_from_calendar_success(mock_google_cal_cls, mock_intervalicu_cls):
         ],
     }
 
-    event = CalendarEvent(
-        id="test-event-1",
-        summary="[Coach] Upcoming Test Run",
-        start=future_date,
-        end=future_date + timedelta(hours=1),
-        description=json.dumps(valid_workout_json),
-    )
+    workout = Workout(**valid_workout_json)
+    mock_platform.get_wellness_data.return_value = []
+    mock_brain.get_final_workouts.return_value = [
+        WorkoutWithSource(source_id="test-event-1", workout=workout)
+    ]
 
-    mock_calendar_client.list_upcoming_events.return_value = [event]
-
-    # Mock intervals successful upload return
-    mock_intervalicu_client.upload_workout.return_value = {
+    # Mock platform successful upload return
+    mock_platform.push_workout.return_value = {
         "success": True,
         "workout_id": 999111,
     }
 
-    service = CoachService(enable_tracking=False)
+    service = CoachService(
+        brain=mock_brain, platform=mock_platform, enable_tracking=False
+    )
 
-    results = service.sync_from_calendar(sync_mode="all")
+    results = service.sync_workouts(dry_run=False)
 
     # Validate the results matrix
     assert results["success"] is True
@@ -54,9 +50,9 @@ def test_sync_from_calendar_success(mock_google_cal_cls, mock_intervalicu_cls):
     assert results["failed"] == 0
     assert len(results["errors"]) == 0
 
-    # Ensure the Intervalicu upload function was actually triggered
-    mock_intervalicu_client.upload_workout.assert_called_once()
-    args, kwargs = mock_intervalicu_client.upload_workout.call_args
+    # Ensure the platform upload function was actually triggered
+    mock_platform.push_workout.assert_called_once()
+    args, kwargs = mock_platform.push_workout.call_args
     uploaded_workout = args[0]
 
     assert uploaded_workout.name == "Test Run"
