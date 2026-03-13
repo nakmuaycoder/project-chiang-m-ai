@@ -3,6 +3,8 @@ import json
 from datetime import datetime, timedelta, timezone
 from typing import List
 
+from pydantic import ValidationError
+
 from project_chiang_m_ai.clients.google_calendar import GoogleCalendarClient
 from project_chiang_m_ai.interfaces.brain import IBrain
 from project_chiang_m_ai.interfaces.calendar import CalendarEvent
@@ -63,7 +65,7 @@ class GoogleCalendarBrain(IBrain):
             try:
                 workout = self._parse_workout_from_event(event)
                 final_workouts.append(workout)
-            except (ValueError, json.JSONDecodeError) as e:
+            except (ValueError, json.JSONDecodeError, ValidationError) as e:
                 logger.error(f"❌ Error parsing workout from '{event.summary}': {e}")
 
         logger.info(

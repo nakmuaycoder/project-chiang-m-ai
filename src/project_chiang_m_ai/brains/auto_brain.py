@@ -3,6 +3,8 @@ import json
 from datetime import datetime, timedelta, timezone
 from typing import List
 
+from pydantic import ValidationError
+
 from project_chiang_m_ai.clients.google_calendar import GoogleCalendarClient
 from project_chiang_m_ai.interfaces.brain import IBrain
 from project_chiang_m_ai.interfaces.llm import ILlmClient
@@ -100,7 +102,13 @@ class AutoAdaptiveBrain(IBrain):
                 payload = daily_workouts_payload[i]
                 if "start_date_local" not in payload or not payload["start_date_local"]:
                     payload["start_date_local"] = evt.start.isoformat()
-                final_workouts.append(Workout(**payload))
+                try:
+                    final_workouts.append(Workout(**payload))
+                except ValidationError as e:
+                    logger.error(
+                        f"❌ [AutoAdaptiveBrain] Validation error for "
+                        f"'{evt.summary}': {e}"
+                    )
             return final_workouts
 
         # Send to LLM
@@ -134,7 +142,13 @@ class AutoAdaptiveBrain(IBrain):
             ):
                 adapted_workout_json["start_date_local"] = event.start.isoformat()
 
-            final_workouts.append(Workout(**adapted_workout_json))
+            try:
+                final_workouts.append(Workout(**adapted_workout_json))
+            except ValidationError as e:
+                logger.error(
+                    f"❌ [AutoAdaptiveBrain] Validation error for "
+                    f"adapted workout '{event.summary}': {e}"
+                )
 
         logger.info(
             "🧠 [AutoAdaptiveBrain] Decided on "

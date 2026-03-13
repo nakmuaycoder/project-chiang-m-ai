@@ -2,6 +2,8 @@ import json
 from pathlib import Path
 from typing import List
 
+from pydantic import ValidationError
+
 from project_chiang_m_ai.interfaces.brain import IBrain
 from project_chiang_m_ai.logger import logger
 from project_chiang_m_ai.models.workout import Workout, WorkoutUnion
@@ -35,6 +37,14 @@ class MockFileBrain(IBrain):
 
             return [Workout(**w) for w in workouts_json]
 
-        except Exception as e:
-            logger.error(f"❌ [MockFileBrain] Error reading JSON: {e}")
+        except FileNotFoundError:
+            logger.error(f"❌ [MockFileBrain] Workout file not found: {self.file_path}")
+            return []
+        except json.JSONDecodeError as e:
+            logger.error(f"❌ [MockFileBrain] Invalid JSON in {self.file_path}: {e}")
+            return []
+        except ValidationError as e:
+            logger.error(
+                f"❌ [MockFileBrain] Data validation error in {self.file_path}: {e}"
+            )
             return []
