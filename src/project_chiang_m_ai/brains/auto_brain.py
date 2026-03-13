@@ -96,8 +96,8 @@ class AutoAdaptiveBrain(IBrain):
             )
             # fallback to calendar brain behaviour
             final_workouts = []
-            for evt in valid_events:
-                payload = json.loads(html.unescape(evt.description).strip())
+            for i, evt in enumerate(valid_events):
+                payload = daily_workouts_payload[i]
                 if "start_date_local" not in payload or not payload["start_date_local"]:
                     payload["start_date_local"] = evt.start.isoformat()
                 final_workouts.append(Workout(**payload))
