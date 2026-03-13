@@ -75,7 +75,9 @@ class CoachService:
 
             # Content hash for detecting changes between syncs
             workout_json = workout.model_dump_json()
-            description_hash = hashlib.md5(workout_json.encode("utf-8")).hexdigest()[:8]
+            description_hash = hashlib.sha256(workout_json.encode("utf-8")).hexdigest()[
+                :16
+            ]
 
             workout_signature = (source_id, description_hash)
 

@@ -40,10 +40,10 @@ class MockFileBrain(IBrain):
             for w in workouts_json:
                 # Derive a stable source_id from the content hash so that
                 # unchanged workouts are not re-uploaded on every run.
-                content_hash = hashlib.md5(
+                content_hash = hashlib.sha256(
                     json.dumps(w, sort_keys=True).encode()
                 ).hexdigest()
-                source_id = f"mock_{content_hash}"
+                source_id = f"mock_{content_hash[:16]}"
                 results.append(
                     WorkoutWithSource(source_id=source_id, workout=Workout(**w))
                 )

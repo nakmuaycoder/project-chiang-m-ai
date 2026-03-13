@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict
 
@@ -29,7 +29,7 @@ class LocalArchivePlatform(ISportPlatform):
         history = [
             {
                 "date": (
-                    now.replace(hour=0, minute=0, second=0) - datetime.timedelta(days=i)
+                    now.replace(hour=0, minute=0, second=0) - timedelta(days=i)
                 ).strftime("%Y-%m-%d"),
                 "hrv": 60 + i,
                 "resting_hr": 50 - i,
