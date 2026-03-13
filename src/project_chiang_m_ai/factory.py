@@ -97,7 +97,6 @@ def get_brain(sync_mode: str = "all", days: int = 28) -> IBrain:
     """Factory to instantiate the configured brain."""
     brain_config = coach_config.get("coach", {}).get("brain", {})
     brain_type = brain_config.get("type", "manual")
-    _source = brain_config.get("source", "google_calendar")
 
     if brain_type == "mock":
         from project_chiang_m_ai.brains.file_brain import MockFileBrain
