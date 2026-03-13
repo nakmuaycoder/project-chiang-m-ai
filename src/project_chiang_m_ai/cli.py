@@ -92,20 +92,11 @@ def cmd_adapt(args):
     logger.info("=" * 70)
     logger.info("")
 
-    # Initialize coach service
-    from project_chiang_m_ai.brains.auto_brain import AutoAdaptiveBrain
-    from project_chiang_m_ai.factory import (
-        get_calendar_provider,
-        get_llm_client,
-        get_platform,
-    )
+    # Initialize coach service — brain type comes from coach_config.yaml
+    from project_chiang_m_ai.factory import get_brain, get_platform
 
-    brain = AutoAdaptiveBrain(
-        calendar_client=get_calendar_provider(),
-        llm_client=get_llm_client(),
-        sync_mode="today",
-        days=1,
-    )
+    # adapt always targets today, regardless of YAML brain type
+    brain = get_brain(sync_mode="today", days=1)
     platform = get_platform()
     coach = CoachService(brain=brain, platform=platform, enable_tracking=True)
 
