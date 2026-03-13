@@ -173,6 +173,82 @@ class CoachService:
 
         return results
 
+    def cleanup_orphaned_workouts(self) -> Dict[str, Any]:
+        """
+        Cleans up platform workouts whose source no longer exists
+        (e.g. a calendar event that has been deleted).
+
+        Requires both tracking and brain.get_current_source_ids() support.
+
+        Returns:
+            Dict with keys: success, deleted, failed, errors
+        """
+        if not self.tracker:
+            logger.warning(
+                "⚠️  Tracking not enabled — cannot clean up orphaned workouts."
+            )
+            return {
+                "success": False,
+                "deleted": 0,
+                "failed": 0,
+                "errors": ["Tracking not enabled"],
+            }
+
+        active_ids = self.brain.get_current_source_ids()
+        if active_ids is None:
+            logger.warning(
+                "⚠️  Brain does not support source enumeration. Cleanup skipped."
+            )
+            return {
+                "success": False,
+                "deleted": 0,
+                "failed": 0,
+                "errors": ["Brain does not support cleanup"],
+            }
+
+        active_id_set = set(active_ids)
+        orphaned = [
+            m
+            for m in self.tracker.history.mappings
+            if m.calendar_event_id not in active_id_set
+        ]
+
+        if not orphaned:
+            logger.info("✅ No orphaned workouts found.")
+            return {"success": True, "deleted": 0, "failed": 0, "errors": []}
+
+        logger.info(f"\n🗑️  Found {len(orphaned)} orphaned workout(s) to clean up.")
+
+        deleted, failed, errors = 0, 0, []
+
+        for mapping in list(orphaned):
+            logger.info(f"   • {mapping.calendar_event_summary}")
+
+            if mapping.intervalicu_id:
+                result = self.platform.delete_workout(mapping.intervalicu_id)
+                if result.get("success"):
+                    logger.info("     ✅ Deleted from platform.")
+                    deleted += 1
+                else:
+                    error_msg = result.get("error", "Unknown error")
+                    logger.error(f"     ⚠️  Failed to delete: {error_msg}")
+                    failed += 1
+                    errors.append(f"{mapping.calendar_event_summary}: {error_msg}")
+
+            # Always remove from the tracker, even on platform delete failure,
+            # so stale references don't accumulate.
+            self.tracker.history.mappings.remove(mapping)
+
+        self.tracker._save_history()
+
+        logger.info(f"\n✅ Cleanup complete: {deleted} deleted, {failed} failed.")
+        return {
+            "success": failed == 0,
+            "deleted": deleted,
+            "failed": failed,
+            "errors": errors,
+        }
+
 
 if __name__ == "__main__":
     from project_chiang_m_ai.factory import get_brain, get_platform

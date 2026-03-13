@@ -70,6 +70,14 @@ class CalendarBaseBrain(IBrain):
             e for e in coach_events if e.start and today_start <= e.start < future_limit
         ]
 
+    def get_current_source_ids(self) -> list[str]:
+        """
+        Returns the calendar event IDs of all currently active coach events.
+        Used by CoachService to detect orphaned platform workouts.
+        """
+        events = self._fetch_filtered_events()
+        return [e.id for e in events]
+
     def _parse_event_payload(
         self, event: CalendarEvent, strip_adapted: bool = True
     ) -> dict | None:
