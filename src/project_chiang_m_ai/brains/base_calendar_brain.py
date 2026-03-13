@@ -154,3 +154,17 @@ class CalendarBaseBrain(IBrain):
                 payloads.append(payload)
                 valid_events.append(event)
         return payloads, valid_events
+
+    def _build_workouts_from_payloads_and_events(
+        self, payloads: List[dict], events: List[CalendarEvent]
+    ) -> List[WorkoutWithSource]:
+        """
+        Iterates over payloads and events to build a list of WorkoutWithSource
+        instances. Any payloads that fail validation are ignored.
+        """
+        final_workouts = []
+        for payload, event in zip(payloads, events):
+            ws = self._build_workout_with_source(payload, event)
+            if ws is not None:
+                final_workouts.append(ws)
+        return final_workouts

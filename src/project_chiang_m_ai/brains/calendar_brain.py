@@ -33,15 +33,10 @@ class GoogleCalendarBrain(CalendarBaseBrain):
         )
 
         filtered_events = self._fetch_filtered_events()
-        final_workouts = []
-
-        for event in filtered_events:
-            payload = self._parse_event_payload(event)
-            if payload is None:
-                continue
-            ws = self._build_workout_with_source(payload, event)
-            if ws is not None:
-                final_workouts.append(ws)
+        payloads, valid_events = self._collect_valid_payloads(filtered_events)
+        final_workouts = self._build_workouts_from_payloads_and_events(
+            payloads, valid_events
+        )
 
         logger.info(
             f"🧠 [GoogleCalendarBrain] Decided on {len(final_workouts)} final workouts."

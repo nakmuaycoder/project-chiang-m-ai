@@ -56,12 +56,9 @@ class AutoAdaptiveBrain(CalendarBaseBrain):
                 "🧠 [AutoAdaptiveBrain] No wellness data provided. "
                 "Cannot adapt, falling back to original."
             )
-            final_workouts = []
-            for payload, event in zip(daily_workouts_payload, valid_events):
-                ws = self._build_workout_with_source(payload, event)
-                if ws is not None:
-                    final_workouts.append(ws)
-            return final_workouts
+            return self._build_workouts_from_payloads_and_events(
+                daily_workouts_payload, valid_events
+            )
 
         # Send to LLM
         adapted_workouts_json = self.llm_client.adapt_daily_workouts(
