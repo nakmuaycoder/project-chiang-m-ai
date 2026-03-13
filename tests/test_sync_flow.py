@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock
 
+from project_chiang_m_ai.interfaces.brain import WorkoutWithSource
 from project_chiang_m_ai.models.workout import Workout
 from project_chiang_m_ai.services.coach import CoachService
 
@@ -26,7 +27,9 @@ def test_sync_from_calendar_success():
 
     workout = Workout(**valid_workout_json)
     mock_platform.get_wellness_data.return_value = []
-    mock_brain.get_final_workouts.return_value = [workout]
+    mock_brain.get_final_workouts.return_value = [
+        WorkoutWithSource(source_id="test-event-1", workout=workout)
+    ]
 
     # Mock platform successful upload return
     mock_platform.push_workout.return_value = {

@@ -2,8 +2,8 @@ from typing import List
 
 from project_chiang_m_ai.brains.base_calendar_brain import CalendarBaseBrain
 from project_chiang_m_ai.clients.google_calendar import GoogleCalendarClient
+from project_chiang_m_ai.interfaces.brain import WorkoutWithSource
 from project_chiang_m_ai.logger import logger
-from project_chiang_m_ai.models.workout import WorkoutUnion
 
 
 class GoogleCalendarBrain(CalendarBaseBrain):
@@ -25,7 +25,7 @@ class GoogleCalendarBrain(CalendarBaseBrain):
 
     def get_final_workouts(
         self, wellness_data: list[dict] | None = None
-    ) -> List[WorkoutUnion]:
+    ) -> List[WorkoutWithSource]:
         """Reads workouts from Google Calendar and returns them as final."""
         logger.info(
             "🧠 [GoogleCalendarBrain] Fetching calendar events "
@@ -39,9 +39,9 @@ class GoogleCalendarBrain(CalendarBaseBrain):
             payload = self._parse_event_payload(event)
             if payload is None:
                 continue
-            workout = self._build_workout(payload, event)
-            if workout is not None:
-                final_workouts.append(workout)
+            ws = self._build_workout_with_source(payload, event)
+            if ws is not None:
+                final_workouts.append(ws)
 
         logger.info(
             f"🧠 [GoogleCalendarBrain] Decided on {len(final_workouts)} final workouts."

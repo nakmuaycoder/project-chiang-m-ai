@@ -62,7 +62,10 @@ class CoachService:
         sync_session_id = str(uuid.uuid4())[:8]
         uploaded_signatures = set()
 
-        for idx, workout in enumerate(final_workouts, 1):
+        for idx, ws in enumerate(final_workouts, 1):
+            workout = ws.workout
+            source_id = ws.source_id
+
             logger.info(f"\n{'=' * 70}")
             logger.info(
                 f"Processing decided workout {idx}/{len(final_workouts)}: "
@@ -70,19 +73,11 @@ class CoachService:
             )
             logger.info(f"{'=' * 70}")
 
-            # Simple content hash for tracking changes
-            # We dump the model back to JSON for hashing
+            # Content hash for detecting changes between syncs
             workout_json = workout.model_dump_json()
             description_hash = hashlib.md5(workout_json.encode("utf-8")).hexdigest()[:8]
 
-            # For tracking, if we don't have true calendar source IDs anymore,
-            # we use the workout name and date as a composite ID.
-            date_str = (
-                workout.start_date_local[:10] if workout.start_date_local else "no-date"
-            )
-            source_id = f"gen_{date_str}_{workout.name.replace(' ', '_')}"
-
-            workout_signature = (workout.name, date_str, workout.type, description_hash)
+            workout_signature = (source_id, description_hash)
 
             # Check for tracker changes
             if self.tracker:

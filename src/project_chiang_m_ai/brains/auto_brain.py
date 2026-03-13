@@ -4,9 +4,10 @@ from pydantic import ValidationError
 
 from project_chiang_m_ai.brains.base_calendar_brain import CalendarBaseBrain
 from project_chiang_m_ai.clients.google_calendar import GoogleCalendarClient
+from project_chiang_m_ai.interfaces.brain import WorkoutWithSource
 from project_chiang_m_ai.interfaces.llm import ILlmClient
 from project_chiang_m_ai.logger import logger
-from project_chiang_m_ai.models.workout import Workout, WorkoutUnion
+from project_chiang_m_ai.models.workout import Workout
 
 
 class AutoAdaptiveBrain(CalendarBaseBrain):
@@ -29,7 +30,7 @@ class AutoAdaptiveBrain(CalendarBaseBrain):
 
     def get_final_workouts(
         self, wellness_data: list[dict] | None = None
-    ) -> List[WorkoutUnion]:
+    ) -> List[WorkoutWithSource]:
         """Reads workouts from Google Calendar and asks LLM to adapt them."""
         logger.info(
             "🧠 [AutoAdaptiveBrain] Fetching events and asking LLM to review..."
@@ -57,9 +58,9 @@ class AutoAdaptiveBrain(CalendarBaseBrain):
             )
             final_workouts = []
             for payload, event in zip(daily_workouts_payload, valid_events):
-                workout = self._build_workout(payload, event)
-                if workout is not None:
-                    final_workouts.append(workout)
+                ws = self._build_workout_with_source(payload, event)
+                if ws is not None:
+                    final_workouts.append(ws)
             return final_workouts
 
         # Send to LLM
@@ -92,7 +93,13 @@ class AutoAdaptiveBrain(CalendarBaseBrain):
                 adapted_workout_json["start_date_local"] = event.start.isoformat()
 
             try:
-                final_workouts.append(Workout(**adapted_workout_json))
+                # Use the calendar event ID as the stable source_id
+                final_workouts.append(
+                    WorkoutWithSource(
+                        source_id=event.id,
+                        workout=Workout(**adapted_workout_json),
+                    )
+                )
             except ValidationError as e:
                 logger.error(
                     f"❌ [AutoAdaptiveBrain] Validation error for "

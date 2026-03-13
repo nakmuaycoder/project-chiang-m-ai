@@ -13,7 +13,7 @@ from typing import List, Tuple
 from pydantic import ValidationError
 
 from project_chiang_m_ai.clients.google_calendar import GoogleCalendarClient
-from project_chiang_m_ai.interfaces.brain import IBrain
+from project_chiang_m_ai.interfaces.brain import IBrain, WorkoutWithSource
 from project_chiang_m_ai.interfaces.calendar import CalendarEvent
 from project_chiang_m_ai.logger import logger
 from project_chiang_m_ai.models.workout import Workout, WorkoutUnion
@@ -125,6 +125,18 @@ class CalendarBaseBrain(IBrain):
         except ValidationError as e:
             logger.error(f"❌ Workout validation error for '{event.summary}': {e}")
             return None
+
+    def _build_workout_with_source(
+        self, payload: dict, event: CalendarEvent
+    ) -> "WorkoutWithSource | None":
+        """
+        Builds a WorkoutWithSource using the calendar event ID as stable source_id.
+        Returns None if validation fails.
+        """
+        workout = self._build_workout(payload, event)
+        if workout is None:
+            return None
+        return WorkoutWithSource(source_id=event.id, workout=workout)
 
     def _collect_valid_payloads(
         self, events: List[CalendarEvent]

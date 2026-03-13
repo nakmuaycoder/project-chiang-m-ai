@@ -1,7 +1,22 @@
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import List
 
 from project_chiang_m_ai.models.workout import WorkoutUnion
+
+
+@dataclass
+class WorkoutWithSource:
+    """
+    Pairs a workout with the stable, unique ID of its origin in the source system
+    (e.g. a Google Calendar event ID, or a generated UUID for mock data).
+
+    This ensures the CoachService can track and de-duplicate workouts reliably,
+    even if the workout's name or date changes between syncs.
+    """
+
+    source_id: str
+    workout: WorkoutUnion
 
 
 class IBrain(ABC):
@@ -13,7 +28,7 @@ class IBrain(ABC):
     @abstractmethod
     def get_final_workouts(
         self, wellness_data: list[dict] | None = None
-    ) -> List[WorkoutUnion]:
+    ) -> List[WorkoutWithSource]:
         """
         Calculates and returns the final workouts to sync.
 
@@ -22,7 +37,8 @@ class IBrain(ABC):
                          to adapt the workout load.
 
         Returns:
-            List of Workout objects ready to be sent to the platform.
+            List of WorkoutWithSource, each pairing a stable source_id
+            with the final Workout object.
         """
         pass
 
