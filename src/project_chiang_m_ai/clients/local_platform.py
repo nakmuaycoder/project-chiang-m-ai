@@ -1,13 +1,11 @@
 import json
-import logging
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict
 
 from project_chiang_m_ai.interfaces.platform import ISportPlatform
+from project_chiang_m_ai.logger import logger
 from project_chiang_m_ai.models.workout import WorkoutUnion
-
-logger = logging.getLogger(__name__)
 
 
 class LocalArchivePlatform(ISportPlatform):
