@@ -94,7 +94,7 @@ class IntervalicuClient(ISportPlatform):
         else:
             return f"{seconds}s"
 
-    def push_workout(self, workout):
+    def push_workout(self, workout: WorkoutUnion):
         """
         Upload a workout to Intervals.icu using native workout format.
 
