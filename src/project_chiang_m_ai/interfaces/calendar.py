@@ -42,7 +42,10 @@ class ICalendarProvider(ABC):
 
     @abstractmethod
     def list_upcoming_events(
-        self, max_results: int = 10, calendar_id: str = "primary"
+        self,
+        max_results: int = 10,
+        calendar_id: str = "primary",
+        time_min: Optional[str] = None,
     ) -> List[CalendarEvent]:
         """
         List upcoming events from the calendar.
@@ -50,6 +53,8 @@ class ICalendarProvider(ABC):
         Args:
             max_results: Maximum number of events to return
             calendar_id: Calendar ID (default: primary)
+            time_min: Minimum start time string in ISO format.
+                      If None, defaults to current time.
 
         Returns:
             List of CalendarEvent objects
@@ -93,5 +98,22 @@ class ICalendarProvider(ABC):
 
         Returns:
             True if deleted successfully, False otherwise
+        """
+        pass
+
+    @abstractmethod
+    def update_event_description(
+        self, event_id: str, new_description: str, calendar_id: str = "primary"
+    ) -> Optional[CalendarEvent]:
+        """
+        Update the description of an event in the calendar.
+
+        Args:
+            event_id: Event ID to update
+            new_description: New description
+            calendar_id: Calendar ID (default: primary)
+
+        Returns:
+            Updated CalendarEvent or None if failed
         """
         pass

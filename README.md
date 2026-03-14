@@ -6,7 +6,11 @@
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 > [!TIP]
-> **Featured in Episode 4: [The "Zero-UI" Warehouse: Shipping AI Plans to Production](https://nakmuaycoder.github.io/nakmuaycoder-r-d-lab/posts/project-chiang-m-ai/04-the-automation-warehouse/)**
+> **Technical Deep Dives:**
+> - **Episode 4**: [The "Zero-UI" Warehouse: Shipping AI Plans to Production](https://nakmuaycoder.github.io/nakmuaycoder-r-d-lab/posts/project-chiang-m-ai/04-the-automation-warehouse/)
+> - **Episode 5**: [Full Auto Mode (Wellness-Based Adaptation)](https://nakmuaycoder.github.io/nakmuaycoder-r-d-lab/posts/project-chiang-m-ai/05-wellness-based-adaptation/)
+>
+> 🔖 **Version Control**: Use Git tags (e.g., `git checkout episode-5-v1.1.0`) to access the specific code state discussed in each post.
 
 **Project Chiang M-AI** syncs AI-generated training plans (from Gemini/ChatGPT) to your training devices (Garmin, Wahoo, smart trainers) via **Intervals.icu**.
 
@@ -17,27 +21,46 @@ This project is the technical implementation of **Project Chiang M-AI**, a perso
 Full story, technical deep dives, and ongoing architectural logs are available at:
 👉 **[Project Chiang M-AI: Fine-Tuning the Fighter](https://nakmuaycoder.github.io/nakmuaycoder-r-d-lab/posts/project-chiang-m-ai/)**
 
+### 📚 Series Overview & Releases
+
+| Episode | Blog Post | Git Tag | Focus |
+| :--- | :--- | :--- | :--- |
+| **Ep. 5** | [Full Auto Mode (Wellness-Based Adaptation)](https://nakmuaycoder.github.io/nakmuaycoder-r-d-lab/posts/project-chiang-m-ai/05-wellness-based-adaptation/) | `episode-5-v1.1.0` | Modular Brains, LLM Adaptation, Testing |
+| **Ep. 4** | [The Zero-UI Warehouse](https://nakmuaycoder.github.io/nakmuaycoder-r-d-lab/posts/project-chiang-m-ai/04-the-automation-warehouse/) | `episode-4 v1.0.0` | Google Calendar API + Intervals.icu Sync |
+
 ## 🏗️ Architecture & Workflow
 
-![Gemini Coach Workflow](assets/workflow.png)
+<img src="assets/workflow.png" alt="Gemini Coach Workflow" width="800">
 
-### The Problem
-You generate training plans with frontier LLMs (Gemini 3, ChatGPT 5.2), but getting them to your devices is manual and tedious.
+### Wellness-Based Adaptive Workflow (Full Auto)
 
-### The Solution
-**Project Chiang M-AI** bridges the gap:
+<img src="assets/full_auto_workflow.png" alt="Full Auto Workflow" width="800">
+
+### Modular Design: Brain vs. Platform
+
+As of Episode 5, the project has been refactored for maximum modularity using a **Brain vs. Sport Platform** architecture.
+
+- **The Brain (`IBrain`)**: The "Decision Maker". It decides what the final workout should be.
+    - `GoogleCalendarBrain`: Blindly trusts the manual plans in your calendar.
+    - `AutoAdaptiveBrain`: Uses an LLM to adapt plans based on your wellness data.
+    - `MockFileBrain`: Reads from a local JSON for testing.
+- **The Sport Platform (`ISportPlatform`)**: The "Executioner". It handles data I/O and display.
+    - `IntervalicuClient`: Pushes workouts to the real Intervals.icu platform.
+    - `LocalArchivePlatform`: Saves workouts as local JSON files (perfect for comparing AI outputs safely).
+
+### The Workflow
 
 ```
-Gemini/ChatGPT (plan generation)
-    ↓ (copy JSON to calendar)
-Google Calendar
-    ↓ (automated sync)
-Project Chiang M-AI CLI → Intervals.icu
-    ↓ (automatic sync)
-Garmin Watch / Wahoo Computer / Smart Trainers
+Google Calendar (Manual Plan)
+    ↓
+Brain (Decides: Keep, Adapt, or Mock)
+    ↓
+Sport Platform (Executes: Sync to Intervals.icu or Save Locally)
+    ↓
+Devices (Garmin, Wahoo, etc.)
 ```
 
-**Intervals.icu** acts as the middleware, automatically syncing workouts to all major platforms (TrainingPeaks Virtual, Garmin Connect, Wahoo, etc.).
+**Intervals.icu** acts as the primary middleware for wellness data and syncing workouts to all major platforms.
 
 ## 🚀 Quick Start
 
@@ -60,16 +83,22 @@ Garmin Watch / Wahoo Computer / Smart Trainers
 
 ### Configuration
 
-Create a `.env` file with your API keys:
-
+1. **Environment Variables**: Create a `.env` file for credentials:
 ```bash
-# Required
 INTERVALS_ATHLETE_ID=i12345
 INTERVALS_API_KEY=your_intervals_key_here
 GOOGLE_CALENDAR_CREDENTIALS_FILE=path/to/credentials.json
+GEMINI_API_KEY=your_gemini_api_key_here
+```
 
-# Optional
-PERIODIZATION=3:1  # or "2:1" (default: 3:1)
+2. **App Configuration**: Customize the modular behavior in `coach_config.yaml`:
+```yaml
+coach:
+  brain:
+    type: "auto"      # "manual", "auto", or "mock"
+    sync_mode: "today" # "today" or "all"
+  destination:
+    type: "intervals_icu" # "intervals_icu" or "local_storage"
 ```
 
 **Get your credentials:**
@@ -120,6 +149,16 @@ python -m project_chiang_m_ai sync --days 14
 # Dry run (parse but don't upload)
 python -m project_chiang_m_ai sync --block --dry-run
 ```
+
+### Wellness Adaptation
+
+**Let the LLM dynamically adjust your daily training based on Heart Rate Variability (HRV) and Resting Heart Rate (RHR) tracked in Intervals.icu.**
+
+```bash
+# Adapt today's planned workouts based on fatigue trends
+python -m project_chiang_m_ai adapt
+```
+If your readiness is low, the LLM will automatically replace intense VO2 max intervals with easy Z1/Z2 recovery or a rest day within your Google Calendar before syncing!
 
 ### Check Status
 
@@ -174,41 +213,40 @@ python -m project_chiang_m_ai sync --help
 ```
 project-chiang-m-ai/
 ├── src/project_chiang_m_ai/
-│   ├── __main__.py          # CLI entry point
-│   ├── cli.py               # CLI commands
-│   ├── config.py            # Configuration
-│   ├── factory.py           # Provider factories
+│   ├── __main__.py          # Entry point
+│   ├── cli.py               # CLI Commands (sync, adapt, status)
+│   ├── factory.py           # Dependency Injection (injects Brain/Platform)
 │   │
-│   ├── interfaces/          # Abstract interfaces
-│   │   ├── workout_source.py
-│   │   └── calendar.py
+│   ├── brains/              # Workout Logic
+│   │   ├── base_calendar_brain.py
+│   │   ├── auto_brain.py    # LLM adaptation
+│   │   └── calendar_brain.py # Manual focus
 │   │
-│   ├── clients/             # API clients
+│   ├── clients/             # API & Platform Clients
+│   │   ├── intervalicu.py
 │   │   ├── google_calendar.py
-│   │   └── intervalicu.py
+│   │   └── local_platform.py # For local testing
 │   │
-│   ├── sources/             # Workout sources
-│   │   └── calendar_source.py
+│   ├── interfaces/          # Abstractions (IBrain, ISportPlatform)
 │   │
-│   ├── services/            # Business logic
-│   │   ├── coach.py
+│   ├── services/            # Orchestration
+│   │   ├── coach.py         # The Conductor
 │   │   └── workout_tracker.py
 │   │
-│   └── models/              # Data models
-│       └── workout.py
+│   └── models/              # Pydantic Models (Workout, Step)
 │
-├── data/                    # Sync history database
-├── docs/                    # Documentation
-├── templates/               # Workout templates
-└── tests/                   # Test scripts
+├── coach_config.yaml        # Main modular config
+├── .env                     # Private secrets
+├── data/                    # Sync history & Local archives
+└── tests/                   # Test suite
 ```
 
 ## 🎯 Periodization
 
 The CLI supports training periodization patterns:
 
-- **3:1** (default): 28-day blocks (3 weeks load + 1 week recovery)
-- **2:1**: 21-day blocks (2 weeks load + 1 week recovery)
+-   **3:1** (default): 28-day blocks (3 weeks load + 1 week recovery)
+-   **2:1**: 21-day blocks (2 weeks load + 1 week recovery)
 
 Set in `.env`:
 ```env

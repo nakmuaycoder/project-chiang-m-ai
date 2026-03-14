@@ -1,6 +1,6 @@
 [project]
 name = "project_chiang_m_ai"
-version = "0.1.0"
+version = "1.1.0"
 description = "Project Chiang M-AI: AI training assistant connecting your calendars to Intervals.icu."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -19,6 +19,8 @@ dependencies = [
     "google-auth-httplib2>=0.3.0",
     "google-auth-oauthlib>=1.2.4",
     "python-dateutil>=2.9.0.post0",
+    "google-genai>=1.66.0",
+    "pyyaml>=6.0.3",
 ]
 
 [build-system]

@@ -1,15 +1,18 @@
 """
 Intervals.icu Client
 
-Handles authentication and workout uploads to Intervals.icu using native workout format.
+Handles authentication, workout uploads to Intervals.icu using native workout format,
+and fetching athlete wellness data.
 """
 
 import base64
+from datetime import datetime, timedelta, timezone
 
 import requests
 from dateutil import parser
 
 from project_chiang_m_ai.config import settings
+from project_chiang_m_ai.interfaces.platform import ISportPlatform
 from project_chiang_m_ai.logger import logger
 from project_chiang_m_ai.models.strength_workout import StrengthWorkout
 from project_chiang_m_ai.models.workout import WorkoutUnion
@@ -17,14 +20,14 @@ from project_chiang_m_ai.models.workout import WorkoutUnion
 BASE_URL = "https://intervals.icu/api/v1/athlete"
 
 
-class IntervalicuClient:
+class IntervalicuClient(ISportPlatform):
     """
     Client for interacting with the Intervals.icu API.
-    Uploads workouts using Intervals.icu's native workout format.
+    Uploads workouts using Intervals.icu's native workout format
+    and fetches athlete wellness data.
     """
 
-    @classmethod
-    def encode_auth(cls) -> str:
+    def encode_auth(self) -> str:
         """
         Encodes the API key for Basic Authentication.
 
@@ -35,8 +38,7 @@ class IntervalicuClient:
         token = f"API_KEY:{api_key}".encode("utf-8")
         return base64.b64encode(token).decode("utf-8")
 
-    @classmethod
-    def format_workout_native(cls, workout: WorkoutUnion) -> str:
+    def format_workout_native(self, workout: WorkoutUnion) -> str:
         """
         Format workout in Intervals.icu native text format.
 
@@ -60,7 +62,7 @@ class IntervalicuClient:
         for block in workout.steps:
             for _ in range(block.repetitions):
                 for step in block.steps:
-                    duration_str = cls._format_duration(step.duration)
+                    duration_str = self._format_duration(step.duration)
                     # Use percentage format: "56% - 75%"
                     zone_str = step.zone.to_value()
 
@@ -75,8 +77,7 @@ class IntervalicuClient:
 
         return "\n".join(lines)
 
-    @classmethod
-    def _format_duration(cls, seconds: int) -> str:
+    def _format_duration(self, seconds: int) -> str:
         """Format duration in human-readable format."""
         if seconds >= 3600:
             hours = seconds // 3600
@@ -93,8 +94,7 @@ class IntervalicuClient:
         else:
             return f"{seconds}s"
 
-    @classmethod
-    def upload_workout(cls, workout):
+    def push_workout(self, workout: WorkoutUnion):
         """
         Upload a workout to Intervals.icu using native workout format.
 
@@ -104,7 +104,7 @@ class IntervalicuClient:
         Returns:
             dict: {"success": bool, "workout_id": int or None, "error": str or None}
         """
-        auth_token = cls.encode_auth()
+        auth_token = self.encode_auth()
         headers = {
             "Authorization": f"Basic {auth_token}",
             "Content-Type": "application/json",
@@ -135,7 +135,7 @@ class IntervalicuClient:
                 logger.info(workout_description)
             else:
                 # Format workout in native format
-                workout_description = cls.format_workout_native(workout)
+                workout_description = self.format_workout_native(workout)
 
                 # Prepare event payload
                 event_payload = {
@@ -181,8 +181,7 @@ class IntervalicuClient:
             logger.error(f"❌ Unexpected error for '{workout.name}': {e}")
             return {"success": False, "workout_id": None, "error": str(e)}
 
-    @classmethod
-    def delete_workout(cls, workout_id: int) -> dict:
+    def delete_workout(self, workout_id: int) -> dict:
         """
         Delete a workout from Intervals.icu by ID.
 
@@ -192,7 +191,7 @@ class IntervalicuClient:
         Returns:
             dict: {"success": bool, "error": str or None}
         """
-        auth_token = cls.encode_auth()
+        auth_token = self.encode_auth()
         headers = {
             "Authorization": f"Basic {auth_token}",
         }
@@ -216,3 +215,59 @@ class IntervalicuClient:
         except Exception as e:
             logger.error(f"❌ Unexpected error deleting {workout_id}: {e}")
             return {"success": False, "error": str(e)}
+
+    def get_wellness_data(self) -> list[dict]:
+        """
+        Fetch wellness data (HRV, resting HR, etc.) for the last N days.
+
+        Returns:
+            list[dict]: List of wellness data dictionaries, chronologically ordered
+        """
+        days = settings.WELLNESS_HISTORY_DAYS
+
+        now = datetime.now(timezone.utc)
+        target_date = now - timedelta(days=days)
+
+        oldest = target_date.strftime("%Y-%m-%d")
+        newest = now.strftime("%Y-%m-%d")
+
+        auth_token = self.encode_auth()
+        headers = {
+            "Authorization": f"Basic {auth_token}",
+        }
+
+        athlete_id = settings.INTERVALS_ATHLETE_ID
+        url = f"{BASE_URL}/{athlete_id}/wellness?oldest={oldest}&newest={newest}"
+
+        try:
+            logger.info(f"📊 Fetching wellness history for the last {days} days...")
+            response = requests.get(url, headers=headers)
+            response.raise_for_status()
+
+            wellness_data = response.json()
+
+            # Extract relevant metrics (date, hrv, resting_hr)
+            # to keep it concise for the LLM
+            history = []
+            for entry in wellness_data:
+                history.append(
+                    {
+                        # Intervals.icu uses "id" for the date string "YYYY-MM-DD"
+                        "date": entry.get("id"),
+                        "hrv": entry.get("hrv"),
+                        "resting_hr": entry.get("restingHR"),
+                    }
+                )
+
+            logger.info(f"✅ Found {len(history)} wellness records")
+            return history
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"❌ Error fetching wellness history: {e}")
+            if hasattr(e, "response") and e.response is not None:
+                logger.info(f"   Status: {e.response.status_code}")
+                logger.info(f"   Response: {e.response.text}")
+            return []
+        except Exception as e:
+            logger.error(f"❌ Unexpected error fetching wellness history: {e}")
+            return []

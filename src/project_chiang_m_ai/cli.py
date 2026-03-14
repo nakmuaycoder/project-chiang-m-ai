@@ -9,6 +9,7 @@ import argparse
 import sys
 
 from project_chiang_m_ai.config import settings
+from project_chiang_m_ai.factory import get_brain, get_platform
 from project_chiang_m_ai.logger import logger
 from project_chiang_m_ai.services.coach import CoachService
 
@@ -66,13 +67,12 @@ def cmd_sync(args):
     logger.info("")
 
     # Initialize coach service
-    coach = CoachService(enable_tracking=True)
+    brain = get_brain(sync_mode=mode, days=days)
+    platform = get_platform()
+    coach = CoachService(brain=brain, platform=platform, enable_tracking=True)
 
     # Run sync
-    max_results = min(days * 3, 150)  # Fetch enough events (3 per day max)
-    results = coach.sync_from_calendar(
-        max_results=max_results, sync_mode=mode, days=days, dry_run=args.dry_run
-    )
+    results = coach.sync_workouts(dry_run=args.dry_run)
 
     # Summary
     logger.info("")
@@ -81,6 +81,33 @@ def cmd_sync(args):
         sys.exit(0)
     else:
         logger.warning("⚠️  Sync completed with errors")
+        sys.exit(1)
+
+
+def cmd_adapt(args):
+    """Adapt today's workouts based on wellness data."""
+    logger.info("=" * 70)
+    logger.info("🧠 LLM Coach - Adapt Workouts")
+    logger.info("=" * 70)
+    logger.info("")
+
+    # Initialize coach service — brain type comes from coach_config.yaml
+
+    # adapt always targets today, regardless of YAML brain type
+    brain = get_brain(sync_mode="today", days=1)
+    platform = get_platform()
+    coach = CoachService(brain=brain, platform=platform, enable_tracking=True)
+
+    # Run adaptation
+    results = coach.sync_workouts(dry_run=False)
+
+    # Summary
+    logger.info("")
+    if results.get("success") and results.get("failed", 0) == 0:
+        logger.info("✅ Adaptation completed successfully!")
+        sys.exit(0)
+    else:
+        logger.warning("⚠️  Adaptation completed with errors")
         sys.exit(1)
 
 
@@ -113,21 +140,21 @@ def cmd_clean(args):
             sys.exit(0)
 
     # Delete workouts
-    from project_chiang_m_ai.clients.intervalicu import IntervalicuClient
+    # Delete workouts using the configured platform
 
-    intervalicu = IntervalicuClient()
+    platform = get_platform()
     deleted = 0
     failed = 0
 
     logger.info("")
     logger.info("🗑️  Deleting workouts...")
     for idx, mapping in enumerate(tracker.history.mappings, 1):
-        if mapping.intervalicu_id:
+        if mapping.platform_id:
             logger.info(
                 f"{idx}/{stats['total_synced']} - Deleting: "
-                f"{mapping.intervalicu_name} (ID: {mapping.intervalicu_id})"
+                f"{mapping.platform_name} (ID: {mapping.platform_id})"
             )
-            result = intervalicu.delete_workout(mapping.intervalicu_id)
+            result = platform.delete_workout(mapping.platform_id)
             if result.get("success"):
                 deleted += 1
             else:
@@ -176,10 +203,10 @@ def cmd_status(args):
             }.get(mapping.status, "❓")
 
             logger.info(
-                f"{status_emoji} {mapping.calendar_event_summary} "
-                f"→ {mapping.intervalicu_name} (ID: {mapping.intervalicu_id})"
+                f"{status_emoji} {mapping.source_summary} "
+                f"→ {mapping.platform_name} (ID: {mapping.platform_id})"
             )
-            logger.info(f"   Date: {mapping.calendar_event_start}")
+            logger.info(f"   Date: {mapping.source_start}")
             logger.info(f"   Synced: {mapping.synced_at[:10]}")
             logger.info("")
 
@@ -202,6 +229,9 @@ Examples:
 
   # Sync next 14 days
   python -m project_chiang_m_ai sync --days 14
+
+  # Adapt today's workouts using LLM based on wellness data
+  python -m project_chiang_m_ai adapt
 
   # Show status
   python -m project_chiang_m_ai status
@@ -253,6 +283,12 @@ Examples:
         "--list", action="store_true", help="List all synced workouts"
     )
     status_parser.set_defaults(func=cmd_status)
+
+    # Adapt command
+    adapt_parser = subparsers.add_parser(
+        "adapt", help="Adapt today's workouts based on wellness data"
+    )
+    adapt_parser.set_defaults(func=cmd_adapt)
 
     # Parse args
     args = parser.parse_args()
