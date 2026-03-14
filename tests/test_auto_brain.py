@@ -167,3 +167,59 @@ def test_auto_brain_mismatched_llm_response(mock_clients):
 
     assert len(results) == 1
     assert results[0].source_id == "ev1"
+
+
+def test_auto_brain_order_risk(mock_clients):
+    """
+    Shows the current behavior (and risk) if the LLM returns workouts
+    in a different order than they were sent.
+    """
+    from datetime import timezone
+
+    now = datetime.now(timezone.utc)
+
+    # We send [Run, Bike]
+    events = [
+        CalendarEvent(
+            id="ev_run",
+            summary="[Coach] Run",
+            start=now,
+            end=now,
+            description='{"type":"Run", "description":"Run Description", "steps":[]}',
+        ),
+        CalendarEvent(
+            id="ev_bike",
+            summary="[Coach] Bike",
+            start=now,
+            end=now,
+            description='{"type":"Ride", "description":"Bike Description", "steps":[]}',
+        ),
+    ]
+    mock_clients["calendar"].list_upcoming_events.return_value = events
+
+    # LLM returns [Adapted Bike, Adapted Run] -> Order is flipped!
+    mock_clients["llm"].adapt_daily_workouts.return_value = [
+        {
+            "name": "Adapted Bike",
+            "type": "Ride",
+            "description": "New Bike",
+            "steps": [],
+        },
+        {"name": "Adapted Run", "type": "Run", "description": "New Run", "steps": []},
+    ]
+
+    brain = AutoAdaptiveBrain(
+        calendar_client=mock_clients["calendar"], llm_client=mock_clients["llm"]
+    )
+
+    results = brain.get_final_workouts(wellness_data=[{"hrv": 50}])
+
+    # Under current implementation (index-based), ev_run will get
+    # the "Adapted Bike" workout.
+    # We assert this to document the risk.
+    assert results[0].source_id == "ev_run"
+    assert (
+        results[0].workout.type == "Ride"
+    )  # Ouch! Run event got a Bike workout because of ordering.
+    assert results[1].source_id == "ev_bike"
+    assert results[1].workout.type == "Run"
