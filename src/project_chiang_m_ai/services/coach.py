@@ -217,7 +217,7 @@ class CoachService:
         deleted, failed, errors = 0, 0, []
 
         for mapping in list(orphaned):
-            logger.info(f"   • {mapping.calendar_event_summary}")
+            logger.info(f"   • {mapping.source_summary}")
 
             if mapping.intervalicu_id:
                 result = self.platform.delete_workout(mapping.intervalicu_id)
