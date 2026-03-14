@@ -1,6 +1,6 @@
 [project]
 name = "project_chiang_m_ai"
-version = "0.1.0"
+version = "1.1.0"
 description = "Project Chiang M-AI: AI training assistant connecting your calendars to Intervals.icu."
 readme = "README.md"
 requires-python = ">=3.12"
