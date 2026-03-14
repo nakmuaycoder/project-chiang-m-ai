@@ -83,7 +83,7 @@ class CoachService:
 
             # Check for tracker changes
             if self.tracker:
-                existing_mapping = self.tracker.history.find_by_calendar_id(source_id)
+                existing_mapping = self.tracker.history.find_by_source_id(source_id)
                 if existing_mapping:
                     if existing_mapping.workout_hash != description_hash:
                         logger.info("🔄 Workout content has changed!")
