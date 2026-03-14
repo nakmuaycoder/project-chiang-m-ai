@@ -228,7 +228,7 @@ class CoachService:
                     error_msg = result.get("error", "Unknown error")
                     logger.error(f"     ⚠️  Failed to delete: {error_msg}")
                     failed += 1
-                    errors.append(f"{mapping.calendar_event_summary}: {error_msg}")
+                    errors.append(f"{mapping.source_summary}: {error_msg}")
 
             # Always remove from the tracker, even on platform delete failure,
             # so stale references don't accumulate.
