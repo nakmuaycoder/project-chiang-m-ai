@@ -8,7 +8,7 @@
 > [!TIP]
 > **Technical Deep Dives:**
 > - **Episode 4**: [The "Zero-UI" Warehouse: Shipping AI Plans to Production](https://nakmuaycoder.github.io/nakmuaycoder-r-d-lab/posts/project-chiang-m-ai/04-the-automation-warehouse/)
-> - **Episode 5**: [Full Auto Mode (Wellness-Based Adaptation)](https://nakmuaycoder.github.io/nakmuaycoder-r-d-lab/posts/project-chiang-m-ai/05-brain-vs-body-refactoring/)
+> - **Episode 5**: [Full Auto Mode (Wellness-Based Adaptation)](https://nakmuaycoder.github.io/nakmuaycoder-r-d-lab/posts/project-chiang-m-ai/05-wellness-based-adaptation/)
 >
 > 🔖 **Version Control**: Use Git tags (e.g., `git checkout episode-5-v1.1.0`) to access the specific code state discussed in each post.
 
@@ -25,12 +25,16 @@ Full story, technical deep dives, and ongoing architectural logs are available a
 
 | Episode | Blog Post | Git Tag | Focus |
 | :--- | :--- | :--- | :--- |
-| **Ep. 5** | [Full Auto Mode (Wellness-Based Adaptation)](https://nakmuaycoder.github.io/nakmuaycoder-r-d-lab/posts/project-chiang-m-ai/05-brain-vs-body-refactoring/) | `episode-5-v1.1.0` | Modular Brains, LLM Adaptation, Testing |
+| **Ep. 5** | [Full Auto Mode (Wellness-Based Adaptation)](https://nakmuaycoder.github.io/nakmuaycoder-r-d-lab/posts/project-chiang-m-ai/05-wellness-based-adaptation/) | `episode-5-v1.1.0` | Modular Brains, LLM Adaptation, Testing |
 | **Ep. 4** | [The Zero-UI Warehouse](https://nakmuaycoder.github.io/nakmuaycoder-r-d-lab/posts/project-chiang-m-ai/04-the-automation-warehouse/) | `episode-4 v1.0.0` | Google Calendar API + Intervals.icu Sync |
 
 ## 🏗️ Architecture & Workflow
 
-![Gemini Coach Workflow](assets/workflow.png)
+<img src="assets/workflow.png" alt="Gemini Coach Workflow" width="800">
+
+### Wellness-Based Adaptive Workflow (Full Auto)
+
+<img src="assets/full_auto_workflow.png" alt="Full Auto Workflow" width="800">
 
 ### Modular Design: Brain vs. Platform
 
