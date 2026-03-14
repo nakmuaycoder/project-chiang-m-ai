@@ -1,6 +1,5 @@
+import importlib.resources
 import json
-import os
-from pathlib import Path
 from typing import Dict, List, Tuple
 
 from project_chiang_m_ai.logger import logger
@@ -13,23 +12,19 @@ class PromptBuilder:
     """
 
     @classmethod
-    def _get_template_path(cls, template_name: str) -> str:
-        """Returns the absolute path to a prompt template."""
-        # Calculate path relative to this file
-        # This file: src/project_chiang_m_ai/utils/prompt_builder.py
-        # The project root is 4 levels up from this file's location.
-        base_dir = Path(__file__).resolve().parents[3]
-        return os.path.join(base_dir, "templates", template_name)
-
-    @classmethod
     def _read_template(cls, template_name: str, fallback: str) -> str:
         """Reads a template file or returns the fallback if it fails."""
-        path = cls._get_template_path(template_name)
         try:
-            with open(path, "r", encoding="utf-8") as f:
-                return f.read().strip()
+            # For template_name="prompts/workout_adaptation/llm_system_prompt.txt"
+            parts = template_name.split("/")
+            path = importlib.resources.files("project_chiang_m_ai.templates").joinpath(
+                *parts
+            )
+            return path.read_text(encoding="utf-8").strip()
         except FileNotFoundError:
-            logger.warning(f"Could not find prompt template at {path}, using fallback.")
+            logger.warning(
+                f"Could not find prompt template {template_name}, using fallback."
+            )
             return fallback
 
     @classmethod

@@ -22,13 +22,11 @@ from project_chiang_m_ai.logger import logger
 class WorkoutMapping(BaseModel):
     """Maps a calendar event to an Intervals.icu workout"""
 
-    # Calendar info
-    calendar_event_id: str
-    calendar_event_summary: str
-    calendar_event_start: str
-    calendar_event_updated: Optional[str] = (
-        None  # When calendar event was last modified
-    )
+    # Source info
+    source_id: str
+    source_summary: str
+    source_start: str
+    source_updated: Optional[str] = None  # When source event was last modified
 
     # Intervals.icu info
     intervalicu_id: Optional[int] = None  # Workout ID from Intervals.icu
@@ -56,10 +54,10 @@ class SyncHistory(BaseModel):
         self.mappings.append(mapping)
         self.last_sync = datetime.now().isoformat()
 
-    def find_by_calendar_id(self, calendar_id: str) -> Optional[WorkoutMapping]:
-        """Find mapping by calendar event ID"""
+    def find_by_source_id(self, source_id: str) -> Optional[WorkoutMapping]:
+        """Find mapping by source event ID"""
         for mapping in self.mappings:
-            if mapping.calendar_event_id == calendar_id:
+            if mapping.source_id == source_id:
                 return mapping
         return None
 
@@ -146,7 +144,7 @@ class WorkoutSyncTracker:
             WorkoutMapping record
         """
         # Check if this event was already synced
-        existing = self.history.find_by_calendar_id(source_id)
+        existing = self.history.find_by_source_id(source_id)
 
         if existing:
             # Update existing mapping
@@ -166,9 +164,9 @@ class WorkoutSyncTracker:
 
         # Create new mapping
         mapping = WorkoutMapping(
-            calendar_event_id=source_id,
-            calendar_event_summary=source_name,
-            calendar_event_start=source_date,
+            source_id=source_id,
+            source_summary=source_name,
+            source_start=source_date,
             intervalicu_id=intervalicu_id,
             intervalicu_name=workout_name,
             intervalicu_type=workout_type,
@@ -249,7 +247,7 @@ if __name__ == "__main__":
     )
 
     logger.info("\n✅ Recorded mapping:")
-    logger.info(f"   Calendar: {mapping.calendar_event_id}")
+    logger.info(f"   Source: {mapping.source_id}")
     logger.info(f"   Intervals.icu: {mapping.intervalicu_id}")
 
     # Print stats

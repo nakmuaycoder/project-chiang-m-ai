@@ -205,9 +205,7 @@ class CoachService:
 
         active_id_set = set(active_ids)
         orphaned = [
-            m
-            for m in self.tracker.history.mappings
-            if m.calendar_event_id not in active_id_set
+            m for m in self.tracker.history.mappings if m.source_id not in active_id_set
         ]
 
         if not orphaned:

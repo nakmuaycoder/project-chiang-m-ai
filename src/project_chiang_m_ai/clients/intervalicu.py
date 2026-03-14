@@ -6,6 +6,7 @@ and fetching athlete wellness data.
 """
 
 import base64
+from datetime import datetime, timedelta, timezone
 
 import requests
 from dateutil import parser
@@ -223,8 +224,6 @@ class IntervalicuClient(ISportPlatform):
             list[dict]: List of wellness data dictionaries, chronologically ordered
         """
         days = settings.WELLNESS_HISTORY_DAYS
-
-        from datetime import datetime, timedelta, timezone
 
         now = datetime.now(timezone.utc)
         target_date = now - timedelta(days=days)

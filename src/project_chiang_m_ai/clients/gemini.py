@@ -2,6 +2,7 @@ import json
 from typing import Dict, List
 
 from google import genai
+from google.api_core import exceptions as google_exceptions
 from google.genai import types
 
 from project_chiang_m_ai.config import settings
@@ -74,6 +75,9 @@ class GeminiClient(ILlmClient):
             # Log the raw response for debugging purposes if it exists
             if "response_text" in locals():
                 logger.debug(f"Invalid JSON received: {response_text}")
+            return daily_workouts_json
+        except google_exceptions.GoogleAPIError as e:
+            logger.error(f"❌ Gemini API error: {e}")
             return daily_workouts_json
         except Exception as e:
             logger.error(f"❌ Failed to get adapted workouts from Gemini: {str(e)}")
