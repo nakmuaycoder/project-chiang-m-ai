@@ -28,10 +28,10 @@ class WorkoutMapping(BaseModel):
     source_start: str
     source_updated: Optional[str] = None  # When source event was last modified
 
-    # Intervals.icu info
-    intervalicu_id: Optional[int] = None  # Workout ID from Intervals.icu
-    intervalicu_name: str
-    intervalicu_type: str
+    # Platform info
+    platform_id: Optional[int] = None  # Workout ID from the destination platform
+    platform_name: str
+    platform_type: str
 
     # Sync metadata
     synced_at: str
@@ -61,10 +61,10 @@ class SyncHistory(BaseModel):
                 return mapping
         return None
 
-    def find_by_intervalicu_id(self, intervalicu_id: int) -> Optional[WorkoutMapping]:
-        """Find mapping by Intervals.icu workout ID"""
+    def find_by_platform_id(self, platform_id: int) -> Optional[WorkoutMapping]:
+        """Find mapping by platform workout ID"""
         for mapping in self.mappings:
-            if mapping.intervalicu_id == intervalicu_id:
+            if mapping.platform_id == platform_id:
                 return mapping
         return None
 
@@ -123,7 +123,7 @@ class WorkoutSyncTracker:
         workout_type: str,
         workout_hash: str,
         sync_session_id: str,
-        intervalicu_id: Optional[int] = None,
+        platform_id: Optional[int] = None,
         status: str = "uploaded",
     ) -> WorkoutMapping:
         """
@@ -137,7 +137,7 @@ class WorkoutSyncTracker:
             workout_type: Type (Run, Ride, WeightTraining)
             workout_hash: Hash of workout content
             sync_session_id: Unique ID for this sync session
-            intervalicu_id: Intervals.icu (or platform) workout ID (if upload succeeded)
+            platform_id: Platform workout ID (if upload succeeded)
             status: Sync status (uploaded, failed, etc.)
 
         Returns:
@@ -153,8 +153,8 @@ class WorkoutSyncTracker:
                 existing.status = "updated"
                 existing.workout_hash = workout_hash
                 existing.synced_at = datetime.now().isoformat()
-                if intervalicu_id:
-                    existing.intervalicu_id = intervalicu_id
+                if platform_id:
+                    existing.platform_id = platform_id
                 logger.info(f"   📝 Updated mapping for source event: {source_id}")
             else:
                 logger.info(f"   ℹ️  Mapping already exists (no changes): {source_id}")
@@ -167,9 +167,9 @@ class WorkoutSyncTracker:
             source_id=source_id,
             source_summary=source_name,
             source_start=source_date,
-            intervalicu_id=intervalicu_id,
-            intervalicu_name=workout_name,
-            intervalicu_type=workout_type,
+            platform_id=platform_id,
+            platform_name=workout_name,
+            platform_type=workout_type,
             synced_at=datetime.now().isoformat(),
             sync_session_id=sync_session_id,
             workout_hash=workout_hash,
@@ -179,9 +179,7 @@ class WorkoutSyncTracker:
         self.history.add_mapping(mapping)
         self._save_history()
 
-        logger.info(
-            f"   💾 Recorded sync: {source_name} → Platform ID {intervalicu_id}"
-        )
+        logger.info(f"   💾 Recorded sync: {source_name} → Platform ID {platform_id}")
 
         return mapping
 
@@ -248,7 +246,7 @@ if __name__ == "__main__":
 
     logger.info("\n✅ Recorded mapping:")
     logger.info(f"   Source: {mapping.source_id}")
-    logger.info(f"   Intervals.icu: {mapping.intervalicu_id}")
+    logger.info(f"   Platform ID: {mapping.platform_id}")
 
     # Print stats
     tracker.print_stats()

@@ -88,10 +88,10 @@ class CoachService:
                     if existing_mapping.workout_hash != description_hash:
                         logger.info("🔄 Workout content has changed!")
 
-                        if existing_mapping.intervalicu_id:
+                        if existing_mapping.platform_id:
                             logger.info("   🗑️  Deleting old instance on platform...")
                             delete_result = self.platform.delete_workout(
-                                existing_mapping.intervalicu_id
+                                existing_mapping.platform_id
                             )
                             if delete_result.get("success"):
                                 logger.info("   ✅ Deleted old workout")
@@ -133,7 +133,7 @@ class CoachService:
                             workout_type=workout.type,
                             workout_hash=description_hash,
                             sync_session_id=sync_session_id,
-                            intervalicu_id=workout_id,
+                            platform_id=workout_id,
                             status="uploaded",
                         )
                 else:
@@ -153,7 +153,7 @@ class CoachService:
                             workout_type=workout.type,
                             workout_hash=description_hash,
                             sync_session_id=sync_session_id,
-                            intervalicu_id=None,
+                            platform_id=None,
                             status="failed",
                         )
 
@@ -219,8 +219,8 @@ class CoachService:
         for mapping in list(orphaned):
             logger.info(f"   • {mapping.source_summary}")
 
-            if mapping.intervalicu_id:
-                result = self.platform.delete_workout(mapping.intervalicu_id)
+            if mapping.platform_id:
+                result = self.platform.delete_workout(mapping.platform_id)
                 if result.get("success"):
                     logger.info("     ✅ Deleted from platform.")
                     deleted += 1

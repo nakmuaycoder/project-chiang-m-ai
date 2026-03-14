@@ -76,7 +76,7 @@ def test_tracker_records_correct_id_after_sync(temp_db, mock_clients):
     mappings = data.get("mappings", [])
     assert len(mappings) == 1
     assert mappings[0]["source_id"] == "source-123"
-    assert mappings[0]["intervalicu_id"] == HARDCODED_PLATFORM_ID
+    assert mappings[0]["platform_id"] == HARDCODED_PLATFORM_ID
     assert mappings[0]["status"] == "uploaded"
 
 
@@ -96,7 +96,7 @@ def test_tracker_cleanup_removes_from_db(temp_db, mock_clients):
         workout_type="Run",
         workout_hash="hash123",
         sync_session_id="session1",
-        intervalicu_id=555,
+        platform_id=555,
         status="uploaded",
     )
 
@@ -143,7 +143,7 @@ def test_sync_update_flow(temp_db, mock_clients):
         workout_type="Run",
         workout_hash="OLD_HASH",
         sync_session_id="session_old",
-        intervalicu_id=old_id,
+        platform_id=old_id,
         status="uploaded",
     )
 
@@ -185,7 +185,7 @@ def test_sync_update_flow(temp_db, mock_clients):
     mock_clients["platform"].push_workout.assert_called_once()
     # - Tracker is updated with the NEW id and NEW hash
     mapping = tracker.history.find_by_source_id(source_id)
-    assert mapping.intervalicu_id == new_id
+    assert mapping.platform_id == new_id
     assert (
         mapping.status == "updated"
     )  # CoachService marks it as updated in tracker.record_sync if exists
@@ -209,7 +209,7 @@ def test_sync_skips_unchanged(temp_db, mock_clients):
         workout_type="Run",
         workout_hash=workout_hash,
         sync_session_id="session_1",
-        intervalicu_id=123,
+        platform_id=123,
         status="uploaded",
     )
 

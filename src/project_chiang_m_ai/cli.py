@@ -149,12 +149,12 @@ def cmd_clean(args):
     logger.info("")
     logger.info("🗑️  Deleting workouts...")
     for idx, mapping in enumerate(tracker.history.mappings, 1):
-        if mapping.intervalicu_id:
+        if mapping.platform_id:
             logger.info(
                 f"{idx}/{stats['total_synced']} - Deleting: "
-                f"{mapping.intervalicu_name} (ID: {mapping.intervalicu_id})"
+                f"{mapping.platform_name} (ID: {mapping.platform_id})"
             )
-            result = platform.delete_workout(mapping.intervalicu_id)
+            result = platform.delete_workout(mapping.platform_id)
             if result.get("success"):
                 deleted += 1
             else:
@@ -204,7 +204,7 @@ def cmd_status(args):
 
             logger.info(
                 f"{status_emoji} {mapping.source_summary} "
-                f"→ {mapping.intervalicu_name} (ID: {mapping.intervalicu_id})"
+                f"→ {mapping.platform_name} (ID: {mapping.platform_id})"
             )
             logger.info(f"   Date: {mapping.source_start}")
             logger.info(f"   Synced: {mapping.synced_at[:10]}")
