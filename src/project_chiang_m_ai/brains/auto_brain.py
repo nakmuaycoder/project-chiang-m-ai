@@ -50,6 +50,21 @@ class AutoAdaptiveBrain(CalendarBaseBrain):
         if not daily_workouts_payload:
             return []
 
+        # 1. Inject source_id into payloads for LLM reconciliation
+        # and create a lookup map for original data
+        original_data_map = {}
+        llm_payload = []
+
+        for payload, event in zip(daily_workouts_payload, valid_events):
+            payload["source_id"] = event.id
+            llm_payload.append(payload)
+            original_data_map[event.id] = {
+                "event": event,
+                "original_payload": list(daily_workouts_payload)[
+                    daily_workouts_payload.index(payload)
+                ].copy(),
+            }
+
         # Fall back to original workouts if no wellness data is available
         if not wellness_data:
             logger.warning(
@@ -60,28 +75,41 @@ class AutoAdaptiveBrain(CalendarBaseBrain):
                 daily_workouts_payload, valid_events
             )
 
-        # Send to LLM
-        adapted_workouts_json = self.llm_client.adapt_daily_workouts(
-            daily_workouts_json=daily_workouts_payload, wellness_history=wellness_data
+        # 2. Send to LLM
+        adapted_workouts_list = self.llm_client.adapt_daily_workouts(
+            daily_workouts_json=llm_payload, wellness_history=wellness_data
         )
 
-        if not adapted_workouts_json or not isinstance(adapted_workouts_json, list):
+        if not adapted_workouts_list or not isinstance(adapted_workouts_list, list):
             logger.error("❌ LLM returned invalid array data. Cannot adapt.")
             return []
 
+        # 3. Map adapted results by source_id for quick lookup
+        adapted_by_id = {}
+        for item in adapted_workouts_list:
+            if isinstance(item, dict) and "source_id" in item:
+                adapted_by_id[item["source_id"]] = item
+
+        # 4. Reconcile by iterating over original events to preserve order
         final_workouts = []
+        for event_id, mapping in original_data_map.items():
+            event = mapping["event"]
+            original_workout_json = mapping["original_payload"]
 
-        for idx, event in enumerate(valid_events):
-            if idx >= len(adapted_workouts_json):
-                break
+            # Check if LLM returned an adapted version
+            adapted_workout_json = adapted_by_id.get(event_id)
 
-            adapted_workout_json = adapted_workouts_json[idx]
-            original_workout_json = daily_workouts_payload[idx]
-
-            if not isinstance(adapted_workout_json, dict):
-                continue
-
-            adapted_workout_json["original_workout"] = original_workout_json
+            if not adapted_workout_json:
+                logger.warning(
+                    f"⚠️ [AutoAdaptiveBrain] LLM missed workout '{event.summary}' "
+                    f"(ID: {event_id}). Falling back to original."
+                )
+                # Fallback to original for this specific workout
+                adapted_workout_json = original_workout_json
+            else:
+                # Use adapted version
+                adapted_workout_json.pop("source_id", None)
+                adapted_workout_json["original_workout"] = original_workout_json
 
             if (
                 "start_date_local" not in adapted_workout_json
@@ -90,7 +118,6 @@ class AutoAdaptiveBrain(CalendarBaseBrain):
                 adapted_workout_json["start_date_local"] = event.start.isoformat()
 
             try:
-                # Use the calendar event ID as the stable source_id
                 final_workouts.append(
                     WorkoutWithSource(
                         source_id=event.id,

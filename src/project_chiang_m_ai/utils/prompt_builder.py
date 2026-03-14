@@ -45,8 +45,10 @@ class PromptBuilder:
         system_fallback = (
             "You are an expert endurance and strength coach. "
             "Output ONLY valid JSON matching the input structure. "
-            "You will receive an array of workouts for the day, and you must "
-            "return an array of adapted workouts in the EXACT identical order."
+            "You will receive an array of workouts for the day. "
+            "Each workout has a 'source_id'. "
+            "You must return an array of adapted workouts, "
+            "making sure to preserve the 'source_id' for each."
         )
         system_instructions = cls._read_template(
             "prompts/workout_adaptation/llm_system_prompt.txt", system_fallback

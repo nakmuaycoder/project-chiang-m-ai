@@ -140,9 +140,9 @@ def cmd_clean(args):
             sys.exit(0)
 
     # Delete workouts
-    from project_chiang_m_ai.clients.intervalicu import IntervalicuClient
+    # Delete workouts using the configured platform
 
-    intervalicu = IntervalicuClient()
+    platform = get_platform()
     deleted = 0
     failed = 0
 
@@ -154,7 +154,7 @@ def cmd_clean(args):
                 f"{idx}/{stats['total_synced']} - Deleting: "
                 f"{mapping.intervalicu_name} (ID: {mapping.intervalicu_id})"
             )
-            result = intervalicu.delete_workout(mapping.intervalicu_id)
+            result = platform.delete_workout(mapping.intervalicu_id)
             if result.get("success"):
                 deleted += 1
             else:
@@ -203,10 +203,10 @@ def cmd_status(args):
             }.get(mapping.status, "❓")
 
             logger.info(
-                f"{status_emoji} {mapping.calendar_event_summary} "
+                f"{status_emoji} {mapping.source_summary} "
                 f"→ {mapping.intervalicu_name} (ID: {mapping.intervalicu_id})"
             )
-            logger.info(f"   Date: {mapping.calendar_event_start}")
+            logger.info(f"   Date: {mapping.source_start}")
             logger.info(f"   Synced: {mapping.synced_at[:10]}")
             logger.info("")
 

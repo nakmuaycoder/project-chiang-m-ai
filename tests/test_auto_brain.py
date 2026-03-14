@@ -58,8 +58,10 @@ def test_auto_brain_nominal_flow(mock_clients):
     # 2. Setup LLM response
     adapted_run = run_json.copy()
     adapted_run["description"] = "Adapted Run"
+    adapted_run["source_id"] = "ev1"
     adapted_strength = strength_json.copy()
     adapted_strength["description"] = "Adapted Strength"
+    adapted_strength["source_id"] = "ev2"
 
     mock_clients["llm"].adapt_daily_workouts.return_value = [
         adapted_run,
@@ -156,7 +158,13 @@ def test_auto_brain_mismatched_llm_response(mock_clients):
 
     # LLM only returns 1 workout instead of 2
     mock_clients["llm"].adapt_daily_workouts.return_value = [
-        {"name": "Adapted 1", "type": "Run", "description": "Adapted", "steps": []}
+        {
+            "name": "Adapted 1",
+            "type": "Run",
+            "description": "Adapted",
+            "steps": [],
+            "source_id": "ev1",
+        }
     ]
 
     brain = AutoAdaptiveBrain(
@@ -169,10 +177,10 @@ def test_auto_brain_mismatched_llm_response(mock_clients):
     assert results[0].source_id == "ev1"
 
 
-def test_auto_brain_order_risk(mock_clients):
+def test_auto_brain_order_resilience(mock_clients):
     """
-    Shows the current behavior (and risk) if the LLM returns workouts
-    in a different order than they were sent.
+    Verifies that the brain correctly reconciles workouts by source_id
+    even if the LLM returns them in a different order.
     """
     from datetime import timezone
 
@@ -198,14 +206,22 @@ def test_auto_brain_order_risk(mock_clients):
     mock_clients["calendar"].list_upcoming_events.return_value = events
 
     # LLM returns [Adapted Bike, Adapted Run] -> Order is flipped!
+    # But it preserves source_id!
     mock_clients["llm"].adapt_daily_workouts.return_value = [
         {
+            "source_id": "ev_bike",
             "name": "Adapted Bike",
             "type": "Ride",
             "description": "New Bike",
             "steps": [],
         },
-        {"name": "Adapted Run", "type": "Run", "description": "New Run", "steps": []},
+        {
+            "source_id": "ev_run",
+            "name": "Adapted Run",
+            "type": "Run",
+            "description": "New Run",
+            "steps": [],
+        },
     ]
 
     brain = AutoAdaptiveBrain(
@@ -214,12 +230,12 @@ def test_auto_brain_order_risk(mock_clients):
 
     results = brain.get_final_workouts(wellness_data=[{"hrv": 50}])
 
-    # Under current implementation (index-based), ev_run will get
-    # the "Adapted Bike" workout.
-    # We assert this to document the risk.
+    # Reconciliation by source_id should WORK now.
+    # ev_run should get the Run workout, even if it was second in LLM response.
     assert results[0].source_id == "ev_run"
-    assert (
-        results[0].workout.type == "Ride"
-    )  # Ouch! Run event got a Bike workout because of ordering.
+    assert results[0].workout.type == "Run"
+    assert results[0].workout.name == "Adapted Run"
+
     assert results[1].source_id == "ev_bike"
-    assert results[1].workout.type == "Run"
+    assert results[1].workout.type == "Ride"
+    assert results[1].workout.name == "Adapted Bike"

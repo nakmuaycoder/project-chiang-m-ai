@@ -5,7 +5,6 @@ coach:
   brain:
     type: "manual" # Or "auto", "mock"
     source: "google_calendar"
-    llm_enabled: false
 
   destination:
     type: "intervals_icu" # Or "local_storage"

@@ -13,6 +13,6 @@ YOUR TASK:
 
 REQUIREMENTS:
 - You MUST output ONLY raw valid JSON.
-- The output MUST be a JSON array containing the adapted workouts in the EXACT identical order as the input array.
-- The JSON objects MUST match the exact identical structure of the original workout JSON (a dictionary with 'name', 'start_date_local', 'category', 'description', 'type', 'steps', etc).
+- The output MUST be a JSON array containing the adapted workouts. Each workout MUST preserve the 'source_id' field provided in the input for reconciliation.
+- The JSON objects MUST match the structure of the original workout JSON (a dictionary with 'source_id', 'name', 'start_date_local', 'category', 'description', 'type', 'steps', etc).
 - DO NOT add markdown wrappers like ```json at the start or end. Return raw json.
