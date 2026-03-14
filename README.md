@@ -8,7 +8,7 @@
 > [!TIP]
 > **Technical Deep Dives:**
 > - **Episode 4**: [The "Zero-UI" Warehouse: Shipping AI Plans to Production](https://nakmuaycoder.github.io/nakmuaycoder-r-d-lab/posts/project-chiang-m-ai/04-the-automation-warehouse/)
-> - **Episode 5**: [The Brain vs. The Body: Refactoring for Local Testing & AI Comparison](https://nakmuaycoder.github.io/nakmuaycoder-r-d-lab/posts/project-chiang-m-ai/05-brain-vs-body-refactoring/)
+> - **Episode 5**: [Full Auto Mode (Wellness-Based Adaptation)](https://nakmuaycoder.github.io/nakmuaycoder-r-d-lab/posts/project-chiang-m-ai/05-brain-vs-body-refactoring/)
 >
 > 🔖 **Version Control**: Use Git tags (e.g., `git checkout episode-5-v1.1.0`) to access the specific code state discussed in each post.
 
@@ -25,7 +25,7 @@ Full story, technical deep dives, and ongoing architectural logs are available a
 
 | Episode | Blog Post | Git Tag | Focus |
 | :--- | :--- | :--- | :--- |
-| **Ep. 5** | [Brain vs. Body: Refactoring](https://nakmuaycoder.github.io/nakmuaycoder-r-d-lab/posts/project-chiang-m-ai/05-brain-vs-body-refactoring/) | `episode-5-v1.1.0` | Modular Brains, Local Testing, Configuration |
+| **Ep. 5** | [Full Auto Mode (Wellness-Based Adaptation)](https://nakmuaycoder.github.io/nakmuaycoder-r-d-lab/posts/project-chiang-m-ai/05-brain-vs-body-refactoring/) | `episode-5-v1.1.0` | Modular Brains, LLM Adaptation, Testing |
 | **Ep. 4** | [The Zero-UI Warehouse](https://nakmuaycoder.github.io/nakmuaycoder-r-d-lab/posts/project-chiang-m-ai/04-the-automation-warehouse/) | `episode-4 v1.0.0` | Google Calendar API + Intervals.icu Sync |
 
 ## 🏗️ Architecture & Workflow
