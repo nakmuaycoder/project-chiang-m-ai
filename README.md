@@ -226,6 +226,7 @@ project-chiang-m-ai/
 │   │
 │   ├── clients/             # API & Platform Clients
 │   │   ├── intervalicu.py
+│   │   ├── trainingpeaks.py
 │   │   ├── google_calendar.py
 │   │   └── local_platform.py # For local testing
 │   │
