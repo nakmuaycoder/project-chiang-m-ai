@@ -179,7 +179,10 @@ class TrainingPeaksClient(ISportPlatform):
 
             metrics = []
             for day in response.json():
-                entry = {"date": day.get("timeStamp")[:10]}
+                timestamp = day.get("timeStamp")
+                if not timestamp:
+                    continue
+                entry = {"date": timestamp[:10]}
                 for detail in day.get("details", []):
                     if detail["type"] == 60:
                         entry["hrv"] = detail["value"]
