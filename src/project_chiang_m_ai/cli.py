@@ -129,7 +129,7 @@ def cmd_clean(args):
 
     logger.info(f"Found {stats['total_synced']} synced workout(s)")
     logger.info("")
-    logger.warning("⚠️  WARNING: This will delete workouts from Intervals.icu")
+    logger.warning("⚠️  WARNING: This will delete workouts from the Sport Platform")
     logger.info("   Calendar events will NOT be deleted")
     logger.info("")
 
