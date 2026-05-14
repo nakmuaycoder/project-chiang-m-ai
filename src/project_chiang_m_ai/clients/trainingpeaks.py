@@ -92,18 +92,26 @@ class TrainingPeaksClient(ISportPlatform):
                 dt_object = parser.isoparse(start_date)
                 start_date = dt_object.strftime("%Y-%m-%d")
 
+            # Mapping des types de sport TP
+            SPORT_MAP = {
+                "Run": (3, 3),
+                "TrailRun": (3, 3),
+                "Bike": (2, 2),
+                "Ride": (2, 2),
+                "Swim": (1, 1),
+                "WeightTraining": (9, 9),
+                "Strength": (9, 9),
+            }
+            family_id, type_id = SPORT_MAP.get(workout.type, (3, 3))  # Default to Run
+
             # Construction du payload TP
             payload = {
                 "athleteId": athlete_id,
                 "workoutDay": start_date,
                 "title": workout.name,
                 "description": workout.description or "",
-                "workoutTypeFamilyId": 3
-                if not isinstance(workout, StrengthWorkout)
-                else 9,
-                "workoutTypeValueId": 3
-                if not isinstance(workout, StrengthWorkout)
-                else 9,
+                "workoutTypeFamilyId": family_id,
+                "workoutTypeValueId": type_id,
             }
 
             # Ajout de la structure si ce n'est pas de la muscu
@@ -276,12 +284,17 @@ class TrainingPeaksClient(ISportPlatform):
             intensity_factor = (weighted_sum / total_duration) ** 0.25 / 100.0
             tss = (total_duration * intensity_factor**2 * 100.0) / 3600.0
 
+        # Choix de la métrique d'intensité selon le sport
+        intensity_metric = "percentOfThresholdHr"
+        if workout.type in ["Bike", "Ride"]:
+            intensity_metric = "percentOfFtp"
+
         return {
             "wire": {
                 "structure": wire_blocks,
                 "polyline": polyline,
                 "primaryLengthMetric": "duration",
-                "primaryIntensityMetric": "percentOfThresholdHr",
+                "primaryIntensityMetric": intensity_metric,
                 "primaryIntensityTargetOrRange": "range",
             },
             "metrics": {
