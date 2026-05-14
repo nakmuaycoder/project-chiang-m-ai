@@ -22,7 +22,7 @@ coach_config = load_coach_config()
 class Settings(BaseSettings):
     INTERVALS_ATHLETE_ID: str
     INTERVALS_API_KEY: SecretStr
-    TP_AUTH_COOKIE: SecretStr
+    TP_AUTH_COOKIE: SecretStr | None = None
     GOOGLE_CALENDAR_CREDENTIALS_FILE: str | None = None
     PERIODIZATION: str = "3:1"  # Training block pattern (2:1 or 3:1)
     DB_PATH: str = "data/workout_sync_history.json"
