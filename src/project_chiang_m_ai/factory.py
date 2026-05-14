@@ -77,7 +77,8 @@ def get_llm_client() -> "ILlmClient":
 
 
 def get_platform() -> ISportPlatform:
-    """Factory to instantiate the configured sport platform (Intervals or Fake)."""
+    """Factory to instantiate the configured
+    sport platform (Intervals, TrainingPeaks or Fake)."""
     dest_config = coach_config.get("coach", {}).get("destination", {})
     dest_type = dest_config.get("type", "intervals_icu")
 
@@ -86,6 +87,11 @@ def get_platform() -> ISportPlatform:
 
         path = dest_config.get("path", "data/runs")
         return LocalArchivePlatform(output_dir=path)
+    elif dest_type == "trainingpeaks":
+        # Default to Intervals.icu
+        from project_chiang_m_ai.clients.trainingpeaks import TrainingPeaksClient
+
+        return TrainingPeaksClient()
     else:
         # Default to Intervals.icu
         from project_chiang_m_ai.clients.intervalicu import IntervalicuClient

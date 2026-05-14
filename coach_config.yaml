@@ -7,7 +7,7 @@ coach:
     source: "google_calendar"
 
   destination:
-    type: "intervals_icu" # Or "local_storage"
+    type: "trainingpeaks" # Or "local_storage"
     path: "./data/runs" # Used when type is local_storage
 
   tracking:
