@@ -88,7 +88,7 @@ def get_platform() -> ISportPlatform:
         path = dest_config.get("path", "data/runs")
         return LocalArchivePlatform(output_dir=path)
     elif dest_type == "trainingpeaks":
-        # Default to Intervals.icu
+        # TrainingPeaks platform
         from project_chiang_m_ai.clients.trainingpeaks import TrainingPeaksClient
 
         return TrainingPeaksClient()
