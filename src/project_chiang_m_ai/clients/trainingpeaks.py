@@ -70,7 +70,7 @@ class TrainingPeaksClient(ISportPlatform):
 
         # TP returns a list of athletes associated with the account
         user_data = response.json()
-        self._athlete_id = user_data["athletes"][0]["athleteId"]
+        self._athlete_id = user_data["user"]["athletes"][0]["athleteId"]
         return self._athlete_id
 
     def push_workout(self, workout: WorkoutUnion) -> dict:
@@ -90,7 +90,7 @@ class TrainingPeaksClient(ISportPlatform):
             start_date = workout.start_date_local
             if start_date:
                 dt_object = parser.isoparse(start_date)
-                start_date = dt_object.strftime("%Y-%m-%dT00:00:00")
+                start_date = dt_object.strftime("%Y-%m-%d")
 
             # Construction du payload TP
             payload = {
@@ -110,8 +110,13 @@ class TrainingPeaksClient(ISportPlatform):
             if not isinstance(workout, StrengthWorkout):
                 import json
 
-                structure = self._format_tp_structure(workout)
-                payload["structure"] = json.dumps(structure)
+                tp_data = self._format_tp_structure(workout)
+                payload["structure"] = json.dumps(tp_data["wire"])
+
+                # Calcul approximatif des métriques pour TP
+                payload["totalTimePlanned"] = tp_data["metrics"]["duration_hours"]
+                payload["ifPlanned"] = tp_data["metrics"]["if"]
+                payload["tssPlanned"] = tp_data["metrics"]["tss"]
 
             logger.info(f"⬆️ Uploading to TrainingPeaks: {workout.name}")
             response = requests.post(url, headers=headers, json=payload)
@@ -123,7 +128,12 @@ class TrainingPeaksClient(ISportPlatform):
             return {"success": True, "workout_id": workout_id}
 
         except Exception as e:
-            logger.error(f"❌ TP Upload Error: {e}")
+            if hasattr(e, "response") and e.response is not None:
+                logger.error(
+                    f"❌ TP Upload Error: {e.response.status_code} - {e.response.text}"
+                )
+            else:
+                logger.error(f"❌ TP Upload Error: {e}")
             return {"success": False, "workout_id": None, "error": str(e)}
 
     def delete_workout(self, workout_id: str | int) -> dict:
@@ -177,33 +187,106 @@ class TrainingPeaksClient(ISportPlatform):
             return []
 
     def _format_tp_structure(self, workout: WorkoutUnion) -> dict:
-        """Converts app structure to TP wire format."""
-        steps = []
+        """Converts app structure to TP wire format based on provided reference."""
+        wire_blocks = []
+        cumulative_seconds = 0
+
+        # Calcul de la durée totale pour la polyline
+        total_duration = 0
+        for block in workout.steps:
+            block_duration = block.duration * block.repetitions
+            total_duration += block_duration
+
+        polyline = []
+        poly_cumulative = 0
+
+        for block in workout.steps:
+            block_duration = block.duration * block.repetitions
+            begin = cumulative_seconds
+            end = cumulative_seconds + block_duration
+
+            inner_steps = []
+            for step in block.steps:
+                # Extraction des zones
+                low = step.zone._start if step.zone._start is not None else 50
+                high = step.zone._end if step.zone._end is not None else 60
+
+                # Mapping de la classe d'intensité
+                tp_class = "active"
+                desc = (step.description or "").lower()
+                if any(kw in desc for kw in ["warm", "échauff"]):
+                    tp_class = "warmUp"
+                elif any(kw in desc for kw in ["cool", "retour au calme"]):
+                    tp_class = "coolDown"
+                elif any(kw in desc for kw in ["rest", "récup", "repos"]):
+                    tp_class = "rest"
+
+                wire_step = {
+                    "name": step.description or tp_class,
+                    "type": "step",
+                    "length": {"value": step.duration, "unit": "second"},
+                    "targets": [{"minValue": float(low), "maxValue": float(high)}],
+                    "intensityClass": tp_class,
+                    "openDuration": False,
+                }
+                inner_steps.append(wire_step)
+
+                # Ajout à la polyline pour chaque répétition
+                for _rep in range(block.repetitions):
+                    t_start = (
+                        poly_cumulative / total_duration if total_duration > 0 else 0
+                    )
+                    poly_cumulative += step.duration
+                    t_end = (
+                        poly_cumulative / total_duration if total_duration > 0 else 0
+                    )
+                    intensity = float(high) / 100.0
+
+                    # Polyline: drop to 0 → rise to intensity → hold → drop to 0
+                    polyline.append([round(t_start, 4), 0])
+                    polyline.append([round(t_start, 4), round(intensity, 4)])
+                    polyline.append([round(t_end, 4), round(intensity, 4)])
+                    polyline.append([round(t_end, 4), 0])
+
+            # TP wrapper block
+            is_rep = block.repetitions > 1
+            wire_block = {
+                "type": "repetition" if is_rep else "step",
+                "length": {"value": block.repetitions, "unit": "repetition"},
+                "steps": inner_steps,
+                "begin": begin,
+                "end": end,
+            }
+            wire_blocks.append(wire_block)
+            cumulative_seconds = end
+
+        # Calcul IF et TSS (NP-style simplified)
+        weighted_sum = 0.0
         for block in workout.steps:
             for _ in range(block.repetitions):
                 for step in block.steps:
-                    # Extraction basique des zones
-                    try:
-                        z = step.zone.to_value().replace("%", "").split("-")
-                        low, high = float(z[0]), float(z[1])
-                    except Exception:
-                        low, high = 50, 60
+                    low = step.zone._start if step.zone._start is not None else 50
+                    high = step.zone._end if step.zone._end is not None else 60
+                    midpoint = (low + high) / 2.0
+                    weighted_sum += step.duration * (midpoint**4)
 
-                    steps.append(
-                        {
-                            "type": "step",
-                            "name": step.name or "",
-                            "length": {"type": "time", "value": step.duration},
-                            "intensity": {
-                                "type": "percentOfThresholdHr",
-                                "min": low / 100,
-                                "max": high / 100,
-                            },
-                        }
-                    )
+        intensity_factor = 0.0
+        tss = 0.0
+        if total_duration > 0:
+            intensity_factor = (weighted_sum / total_duration) ** 0.25 / 100.0
+            tss = (total_duration * intensity_factor**2 * 100.0) / 3600.0
+
         return {
-            "structure": steps,
-            "polyline": None,
-            "primaryLengthMetric": "time",
-            "primaryIntensityMetric": "percentOfThresholdHr",
+            "wire": {
+                "structure": wire_blocks,
+                "polyline": polyline,
+                "primaryLengthMetric": "duration",
+                "primaryIntensityMetric": "percentOfThresholdHr",
+                "primaryIntensityTargetOrRange": "range",
+            },
+            "metrics": {
+                "duration_hours": total_duration / 3600.0,
+                "if": round(intensity_factor, 3),
+                "tss": round(tss, 1),
+            },
         }
