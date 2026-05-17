@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     PERIODIZATION: str = "3:1"  # Training block pattern (2:1 or 3:1)
     DB_PATH: str = "data/workout_sync_history.json"
     WELLNESS_HISTORY_DAYS: int = 10
+    API_TIMEOUT: int = 10
 
     # LLM Settings
     LLM_PROVIDER: str = "gemini"  # Can be gemini, openai, anthropic

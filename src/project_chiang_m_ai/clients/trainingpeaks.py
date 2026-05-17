@@ -5,6 +5,8 @@ Handles direct communication with TrainingPeaks API, including
 cookie-to-token exchange and workout management.
 """
 
+import json
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 import requests
@@ -17,6 +19,12 @@ from project_chiang_m_ai.models.strength_workout import StrengthWorkout
 from project_chiang_m_ai.models.workout import WorkoutUnion
 
 BASE_URL = "https://tpapi.trainingpeaks.com"
+
+
+@dataclass(frozen=True)
+class TPMetricType:
+    HRV: int = 60
+    RESTING_HR: int = 5
 
 
 class TrainingPeaksClient(ISportPlatform):
@@ -36,6 +44,10 @@ class TrainingPeaksClient(ISportPlatform):
         if self._access_token:
             return self._access_token
 
+        if not settings.TP_AUTH_COOKIE:
+            raise ValueError(
+                "TP_AUTH_COOKIE is not set. Please configure it in your .env file."
+            )
         cookie = settings.TP_AUTH_COOKIE.get_secret_value()
         url = f"{BASE_URL}/users/v3/token"
         headers = {
@@ -44,14 +56,14 @@ class TrainingPeaksClient(ISportPlatform):
         }
 
         try:
-            response = requests.get(url, headers=headers)
+            response = requests.get(url, headers=headers, timeout=settings.API_TIMEOUT)
             response.raise_for_status()
             data = response.json()
 
             if data.get("success") and "token" in data:
                 self._access_token = data["token"]["access_token"]
                 return self._access_token
-            raise Exception("Failed to extract token from TP response")
+            raise RuntimeError("Failed to extract token from TP response")
         except Exception as e:
             logger.error(f"❌ TP Auth Error: {e}")
             raise
@@ -65,12 +77,17 @@ class TrainingPeaksClient(ISportPlatform):
         url = f"{BASE_URL}/users/v3/user"
         headers = {"Authorization": f"Bearer {token}"}
 
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, headers=headers, timeout=settings.API_TIMEOUT)
         response.raise_for_status()
 
         # TP returns a list of athletes associated with the account
         user_data = response.json()
-        self._athlete_id = user_data["user"]["athletes"][0]["athleteId"]
+        athletes = user_data.get("user", {}).get("athletes", [])
+        if not athletes:
+            raise ValueError(
+                "No athletes found associated with this TrainingPeaks account."
+            )
+        self._athlete_id = athletes[0]["athleteId"]
         return self._athlete_id
 
     def push_workout(self, workout: WorkoutUnion) -> dict:
@@ -116,8 +133,6 @@ class TrainingPeaksClient(ISportPlatform):
 
             # Ajout de la structure si ce n'est pas de la muscu
             if not isinstance(workout, StrengthWorkout):
-                import json
-
                 tp_data = self._format_tp_structure(workout)
                 payload["structure"] = json.dumps(tp_data["wire"])
 
@@ -127,7 +142,9 @@ class TrainingPeaksClient(ISportPlatform):
                 payload["tssPlanned"] = tp_data["metrics"]["tss"]
 
             logger.info(f"⬆️ Uploading to TrainingPeaks: {workout.name}")
-            response = requests.post(url, headers=headers, json=payload)
+            response = requests.post(
+                url, headers=headers, json=payload, timeout=settings.API_TIMEOUT
+            )
             response.raise_for_status()
 
             workout_id = response.json().get("workoutId")
@@ -153,7 +170,9 @@ class TrainingPeaksClient(ISportPlatform):
         headers = {"Authorization": f"Bearer {token}"}
 
         try:
-            response = requests.delete(url, headers=headers)
+            response = requests.delete(
+                url, headers=headers, timeout=settings.API_TIMEOUT
+            )
             response.raise_for_status()
             return {"success": True}
         except Exception as e:
@@ -174,7 +193,7 @@ class TrainingPeaksClient(ISportPlatform):
         headers = {"Authorization": f"Bearer {token}"}
 
         try:
-            response = requests.get(url, headers=headers)
+            response = requests.get(url, headers=headers, timeout=settings.API_TIMEOUT)
             response.raise_for_status()
 
             metrics = []
@@ -184,9 +203,9 @@ class TrainingPeaksClient(ISportPlatform):
                     continue
                 entry = {"date": timestamp[:10]}
                 for detail in day.get("details", []):
-                    if detail["type"] == 60:
+                    if detail["type"] == TPMetricType.HRV:
                         entry["hrv"] = detail["value"]
-                    if detail["type"] == 5:
+                    elif detail["type"] == TPMetricType.RESTING_HR:
                         entry["resting_hr"] = detail["value"]
 
                 if "hrv" in entry or "resting_hr" in entry:
@@ -219,8 +238,8 @@ class TrainingPeaksClient(ISportPlatform):
             inner_steps = []
             for step in block.steps:
                 # Extraction des zones
-                low = step.zone._start if step.zone._start is not None else 50
-                high = step.zone._end if step.zone._end is not None else 60
+                low = step.zone.start if step.zone.start is not None else 50
+                high = step.zone.end if step.zone.end is not None else 60
 
                 # Mapping de la classe d'intensité
                 tp_class = "active"
@@ -276,8 +295,8 @@ class TrainingPeaksClient(ISportPlatform):
         for block in workout.steps:
             for _ in range(block.repetitions):
                 for step in block.steps:
-                    low = step.zone._start if step.zone._start is not None else 50
-                    high = step.zone._end if step.zone._end is not None else 60
+                    low = step.zone.start if step.zone.start is not None else 50
+                    high = step.zone.end if step.zone.end is not None else 60
                     midpoint = (low + high) / 2.0
                     weighted_sum += step.duration * (midpoint**4)
 

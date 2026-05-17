@@ -158,6 +158,18 @@ class Zone(BaseModel):
         # Fallback: return raw string if parsing failed
         return self.z
 
+    @property
+    def start(self) -> Optional[int]:
+        return self._start
+
+    @property
+    def end(self) -> Optional[int]:
+        return self._end
+
+    @property
+    def unit(self) -> str:
+        return self._unit
+
 
 class Step(BaseModel):
     """

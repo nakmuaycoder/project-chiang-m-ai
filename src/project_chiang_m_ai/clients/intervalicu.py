@@ -158,7 +158,9 @@ class IntervalicuClient(ISportPlatform):
 
             logger.info(f"\n⬆️  Uploading to {url}")
 
-            response = requests.post(url, headers=headers, json=event_payload)
+            response = requests.post(
+                url, headers=headers, json=event_payload, timeout=settings.API_TIMEOUT
+            )
             response.raise_for_status()
 
             # Extract workout ID from response
@@ -200,7 +202,9 @@ class IntervalicuClient(ISportPlatform):
         url = f"{BASE_URL}/{athlete_id}/events/{workout_id}"
 
         try:
-            response = requests.delete(url, headers=headers)
+            response = requests.delete(
+                url, headers=headers, timeout=settings.API_TIMEOUT
+            )
             response.raise_for_status()
 
             logger.info(f"✅ Deleted workout ID: {workout_id}")
@@ -241,7 +245,7 @@ class IntervalicuClient(ISportPlatform):
 
         try:
             logger.info(f"📊 Fetching wellness history for the last {days} days...")
-            response = requests.get(url, headers=headers)
+            response = requests.get(url, headers=headers, timeout=settings.API_TIMEOUT)
             response.raise_for_status()
 
             wellness_data = response.json()
