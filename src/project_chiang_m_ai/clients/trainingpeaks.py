@@ -109,7 +109,7 @@ class TrainingPeaksClient(ISportPlatform):
                 dt_object = parser.isoparse(start_date)
                 start_date = dt_object.strftime("%Y-%m-%d")
 
-            # Mapping des types de sport TP
+            # Mapping of TP sport types
             SPORT_MAP = {
                 "Run": (3, 3),
                 "TrailRun": (3, 3),
@@ -121,25 +121,34 @@ class TrainingPeaksClient(ISportPlatform):
             }
             family_id, type_id = SPORT_MAP.get(workout.type, (3, 3))  # Default to Run
 
-            # Construction du payload TP
+            # Construct TP payload
             payload = {
                 "athleteId": athlete_id,
                 "workoutDay": start_date,
                 "title": workout.name,
-                "description": workout.description or "",
+                "description": (
+                    workout.to_intervals_description()
+                    if isinstance(workout, StrengthWorkout)
+                    else (workout.description or "")
+                ),
                 "workoutTypeFamilyId": family_id,
                 "workoutTypeValueId": type_id,
             }
 
-            # Ajout de la structure si ce n'est pas de la muscu
+            # Add structure if it's not a strength workout
             if not isinstance(workout, StrengthWorkout):
                 tp_data = self._format_tp_structure(workout)
                 payload["structure"] = json.dumps(tp_data["wire"])
 
-                # Calcul approximatif des métriques pour TP
+                # Approximate metrics calculation for TP
                 payload["totalTimePlanned"] = tp_data["metrics"]["duration_hours"]
                 payload["ifPlanned"] = tp_data["metrics"]["if"]
                 payload["tssPlanned"] = tp_data["metrics"]["tss"]
+            else:
+                # For strength workouts, add the planned duration in
+                # hours (TP expects hours)
+                if workout.estimated_duration:
+                    payload["totalTimePlanned"] = workout.estimated_duration / 3600.0
 
             logger.info(f"⬆️ Uploading to TrainingPeaks: {workout.name}")
             response = requests.post(
@@ -221,7 +230,7 @@ class TrainingPeaksClient(ISportPlatform):
         wire_blocks = []
         cumulative_seconds = 0
 
-        # Calcul de la durée totale pour la polyline
+        # Calculate total duration for the polyline
         total_duration = 0
         for block in workout.steps:
             block_duration = block.duration * block.repetitions
@@ -237,11 +246,11 @@ class TrainingPeaksClient(ISportPlatform):
 
             inner_steps = []
             for step in block.steps:
-                # Extraction des zones
+                # Extract zones
                 low = step.zone.start if step.zone.start is not None else 50
                 high = step.zone.end if step.zone.end is not None else 60
 
-                # Mapping de la classe d'intensité
+                # Map intensity class
                 tp_class = "active"
                 desc = (step.description or "").lower()
                 if any(kw in desc for kw in ["warm", "échauff"]):
@@ -261,7 +270,7 @@ class TrainingPeaksClient(ISportPlatform):
                 }
                 inner_steps.append(wire_step)
 
-                # Ajout à la polyline pour chaque répétition
+                # Add to polyline for each repetition
                 for _rep in range(block.repetitions):
                     t_start = (
                         poly_cumulative / total_duration if total_duration > 0 else 0
@@ -290,7 +299,7 @@ class TrainingPeaksClient(ISportPlatform):
             wire_blocks.append(wire_block)
             cumulative_seconds = end
 
-        # Calcul IF et TSS (NP-style simplified)
+        # Calculate IF and TSS (NP-style simplified)
         weighted_sum = 0.0
         for block in workout.steps:
             for _ in range(block.repetitions):
@@ -306,7 +315,7 @@ class TrainingPeaksClient(ISportPlatform):
             intensity_factor = (weighted_sum / total_duration) ** 0.25 / 100.0
             tss = (total_duration * intensity_factor**2 * 100.0) / 3600.0
 
-        # Choix de la métrique d'intensité selon le sport
+        # Choose intensity metric based on sport type
         intensity_metric = "percentOfThresholdHr"
         if workout.type in ["Bike", "Ride"]:
             intensity_metric = "percentOfFtp"
