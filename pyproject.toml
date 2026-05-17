@@ -51,3 +51,6 @@ indent-style = "space"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/project_chiang_m_ai"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

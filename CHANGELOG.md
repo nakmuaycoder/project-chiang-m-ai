@@ -5,6 +5,20 @@ All notable changes to **Project Chiang M-AI** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-05-17
+
+### Added
+- **TrainingPeaks Integration**: Added `TrainingPeaksClient` as a new `ISportPlatform` destination, enabling direct workout synchronization to TrainingPeaks using cookie-based authentication (`TP_AUTH_COOKIE`).
+- **TrainingPeaks Wire Format Support**: Implemented transformation of simplified workout steps into TP's native hierarchical structure (nesting repetitions, converting intervals, calculating cumulative duration times).
+- **Dynamic Sport Intensity Metrics**:
+  - Automatically selects `percentOfFtp` (Power) for Cycling (`Bike`, `Ride`) and `percentOfThresholdHr` (Heart Rate) for Running (`Run`, `TrailRun`).
+  - Automatically generates TrainingPeaks `polyline` segment data for high/low visualization in the UI.
+- **Automatic Workout Metric Calculation**: Implemented automatic calculation of **Intensity Factor (IF)** and **Training Stress Score (TSS)** based on NP-style weighted average (4th power of zone midpoints) to pass API validations.
+
+### Changed
+- **Robust CI Testing**: Set `TP_AUTH_COOKIE` as optional in `Settings` configuration to prevent test suite validation crashes in CI/CD pipelines without environment credentials.
+- **Agnostic Warnings**: Generalized command-line warning messages from "Intervals.icu" to "Sport Platform" for better alignment with multiple platforms.
+
 ## [1.1.0] - 2026-03-14
 
 ### Added
