@@ -112,65 +112,115 @@ def cmd_adapt(args):
 
 
 def cmd_clean(args):
-    """Clean up synced workouts from Intervals.icu."""
+    """Clean up synced future workouts from the Sport Platform."""
+    from datetime import datetime
+
+    from dateutil import parser
+
     from project_chiang_m_ai.services.workout_tracker import WorkoutSyncTracker
 
     tracker = WorkoutSyncTracker()
-    stats = tracker.get_stats()
+    total_mappings = len(tracker.history.mappings)
 
     logger.info("=" * 70)
     logger.info("🗑️  Clean Synced Workouts")
     logger.info("=" * 70)
     logger.info("")
 
-    if stats["total_synced"] == 0:
+    if total_mappings == 0:
         logger.info("📭 No synced workouts found")
         sys.exit(0)
 
-    logger.info(f"Found {stats['total_synced']} synced workout(s)")
+    # Separate past and future workouts based on start date
+    past_mappings = []
+    future_mappings = []
+
+    for mapping in tracker.history.mappings:
+        try:
+            start_dt = parser.parse(mapping.source_start)
+            # If start_dt has timezone info, compare with timezone-aware now
+            if start_dt.tzinfo is not None:
+                now_cmp = datetime.now(start_dt.tzinfo)
+            else:
+                now_cmp = datetime.now()
+
+            if start_dt > now_cmp:
+                future_mappings.append(mapping)
+            else:
+                past_mappings.append(mapping)
+        except Exception:
+            # Fallback to past if parsing fails, to be safe
+            past_mappings.append(mapping)
+
+    logger.info(f"Found {total_mappings} synced workout(s) in history:")
+    logger.info(f"   📅 Past/Completed: {len(past_mappings)} (will be PRESERVED)")
+    logger.info(f"   🔮 Future:         {len(future_mappings)} (will be DELETED)")
     logger.info("")
-    logger.warning("⚠️  WARNING: This will delete workouts from the Sport Platform")
+
+    if len(future_mappings) == 0:
+        logger.info("📭 No future synced workouts found to delete")
+        sys.exit(0)
+
+    logger.warning(
+        "⚠️  WARNING: This will delete future workouts from the Sport Platform"
+    )
     logger.info("   Calendar events will NOT be deleted")
     logger.info("")
 
     if not args.yes:
-        response = input("Delete all synced workouts? (yes/NO): ").strip().lower()
+        response = (
+            input(f"Delete these {len(future_mappings)} future workout(s)? (yes/NO): ")
+            .strip()
+            .lower()
+        )
         if response != "yes":
             logger.error("❌ Cancelled")
             sys.exit(0)
 
-    # Delete workouts
     # Delete workouts using the configured platform
-
     platform = get_platform()
     deleted = 0
     failed = 0
+    remaining_future = []
 
     logger.info("")
-    logger.info("🗑️  Deleting workouts...")
-    for idx, mapping in enumerate(tracker.history.mappings, 1):
+    logger.info("🗑️  Deleting future workouts...")
+    for idx, mapping in enumerate(future_mappings, 1):
         if mapping.platform_id:
             logger.info(
-                f"{idx}/{stats['total_synced']} - Deleting: "
-                f"{mapping.platform_name} (ID: {mapping.platform_id})"
+                f"{idx}/{len(future_mappings)} - Deleting: "
+                f"{mapping.platform_name} (ID: {mapping.platform_id}, "
+                f"Date: {mapping.source_start})"
             )
             result = platform.delete_workout(mapping.platform_id)
             if result.get("success"):
                 deleted += 1
             else:
                 failed += 1
+                remaining_future.append(mapping)
                 logger.error(f"   ⚠️  Failed: {result.get('error')}")
+        else:
+            # If no platform_id, consider it cleaned
+            deleted += 1
 
-    # Clear database
+    # Keep past mappings and failed future mappings in the database
+    tracker.history.mappings = past_mappings + remaining_future
+    tracker._save_history()
+
     if args.clear_db:
-        tracker.history.mappings = []
-        tracker._save_history()
-        logger.info("")
-        logger.info("✅ Database cleared")
+        # If `--clear-db` was requested, we only clear the database mappings
+        # for the future workouts that were successfully deleted.
+        # Since the user wants to keep the database for past workouts,
+        # we preserve past workouts in all circumstances.
+        logger.info(
+            "ℹ️  Database updated: successfully deleted future workouts "
+            "removed. Past workouts kept."
+        )
 
     logger.info("")
     logger.info("=" * 70)
     logger.info(f"✅ Deleted: {deleted}, ❌ Failed: {failed}")
+    logger.info(f"📊 Remaining in DB (past/completed): {len(past_mappings)}")
     logger.info("=" * 70)
 
 
