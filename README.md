@@ -4,6 +4,8 @@
 ![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)
 ![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)
 ![License](https://img.shields.io/badge/license-MIT-green)
+![CI](https://github.com/nakmuaycoder/where-to-run-today/actions/workflows/ci.yml/badge.svg)
+
 
 > [!TIP]
 > **Technical Deep Dives:**
@@ -12,7 +14,7 @@
 >
 > 🔖 **Version Control**: Use Git tags (e.g., `git checkout episode-5-v1.1.0`) to access the specific code state discussed in each post.
 
-**Project Chiang M-AI** syncs AI-generated training plans (from Gemini/ChatGPT) to your training devices (Garmin, Wahoo, smart trainers) via **Intervals.icu**.
+**Project Chiang M-AI** syncs AI-generated training plans (from Gemini/ChatGPT) to your training devices (Garmin, Wahoo, smart trainers) via **Intervals.icu** or **TrainingPeaks**.
 
 ## ⛰️ Project Chiang M-AI
 
@@ -46,6 +48,7 @@ As of Episode 5, the project has been refactored for maximum modularity using a 
     - `MockFileBrain`: Reads from a local JSON for testing.
 - **The Sport Platform (`ISportPlatform`)**: The "Executioner". It handles data I/O and display.
     - `IntervalicuClient`: Pushes workouts to the real Intervals.icu platform.
+    - `TrainingPeaksClient`: Syncs structured workouts directly to TrainingPeaks.
     - `LocalArchivePlatform`: Saves workouts as local JSON files (perfect for comparing AI outputs safely).
 
 ### The Workflow
@@ -55,12 +58,12 @@ Google Calendar (Manual Plan)
     ↓
 Brain (Decides: Keep, Adapt, or Mock)
     ↓
-Sport Platform (Executes: Sync to Intervals.icu or Save Locally)
+Sport Platform (Sync to Intervals.icu or TrainingPeaks)
     ↓
 Devices (Garmin, Wahoo, etc.)
 ```
 
-**Intervals.icu** acts as the primary middleware for wellness data and syncing workouts to all major platforms.
+**Intervals.icu** or **TrainingPeaks** act as the primary middleware for wellness data and syncing workouts to all major platforms.
 
 ## 🚀 Quick Start
 
@@ -87,6 +90,7 @@ Devices (Garmin, Wahoo, etc.)
 ```bash
 INTERVALS_ATHLETE_ID=i12345
 INTERVALS_API_KEY=your_intervals_key_here
+TP_AUTH_COOKIE=your_tp_cookie_here  # TrainingPeaks auth cookie
 GOOGLE_CALENDAR_CREDENTIALS_FILE=path/to/credentials.json
 GEMINI_API_KEY=your_gemini_api_key_here
 ```
@@ -98,7 +102,7 @@ coach:
     type: "auto"      # "manual", "auto", or "mock"
     sync_mode: "today" # "today" or "all"
   destination:
-    type: "intervals_icu" # "intervals_icu" or "local_storage"
+    type: "training_peaks" # "intervals_icu", "training_peaks" or "local_storage"
 ```
 
 **Get your credentials:**
@@ -152,7 +156,7 @@ python -m project_chiang_m_ai sync --block --dry-run
 
 ### Wellness Adaptation
 
-**Let the LLM dynamically adjust your daily training based on Heart Rate Variability (HRV) and Resting Heart Rate (RHR) tracked in Intervals.icu.**
+**Let the LLM dynamically adjust your daily training based on Heart Rate Variability (HRV) and Resting Heart Rate (RHR) tracked in Intervals.icu or TrainingPeaks.**
 
 ```bash
 # Adapt today's planned workouts based on fatigue trends
@@ -173,7 +177,7 @@ python -m project_chiang_m_ai status --list
 ### Clean Up
 
 ```bash
-# Delete all synced workouts from Intervals.icu
+# Delete all synced workouts from the Sport Platform
 python -m project_chiang_m_ai clean
 
 # Skip confirmation prompt
@@ -224,6 +228,7 @@ project-chiang-m-ai/
 │   │
 │   ├── clients/             # API & Platform Clients
 │   │   ├── intervalicu.py
+│   │   ├── trainingpeaks.py
 │   │   ├── google_calendar.py
 │   │   └── local_platform.py # For local testing
 │   │
