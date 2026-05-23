@@ -241,14 +241,14 @@ class TrainingPeaksClient(ISportPlatform):
         # Calculate total duration for the polyline
         total_duration = 0
         for block in workout.steps:
-            block_duration = block.duration * block.repetitions
+            block_duration = block.duration
             total_duration += block_duration
 
         polyline = []
         poly_cumulative = 0
 
         for block in workout.steps:
-            block_duration = block.duration * block.repetitions
+            block_duration = block.duration
             begin = cumulative_seconds
             end = cumulative_seconds + block_duration
 
