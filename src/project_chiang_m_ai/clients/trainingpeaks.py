@@ -121,9 +121,11 @@ class TrainingPeaksClient(ISportPlatform):
 
         try:
             start_date = workout.start_date_local
-            if start_date:
-                dt_object = parser.isoparse(start_date)
-                start_date = dt_object.strftime("%Y-%m-%d")
+            if not start_date:
+                raise ValueError(f"Workout '{workout.name}' is missing a start date.")
+
+            dt_object = parser.isoparse(start_date)
+            start_date = dt_object.strftime("%Y-%m-%d")
 
             # Default to Run if type is unknown
             family_id, type_id = TP_SPORT_MAP.get(workout.type, (3, 3))
