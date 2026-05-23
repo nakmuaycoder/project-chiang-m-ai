@@ -147,7 +147,7 @@ class TrainingPeaksClient(ISportPlatform):
             # Add structure if it's not a strength workout
             if not isinstance(workout, StrengthWorkout):
                 tp_data = self._format_tp_structure(workout)
-                payload["structure"] = json.dumps(tp_data["wire"])
+                payload["structure"] = tp_data["wire"]
 
                 # Approximate metrics calculation for TP
                 payload["totalTimePlanned"] = tp_data["metrics"]["duration_hours"]
