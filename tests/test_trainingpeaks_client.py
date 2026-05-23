@@ -24,6 +24,7 @@ def test_trainingpeaks_strength_push(
     payload = {
         "name": "[Coach] Upper Body Push",
         "description": "Chest, shoulders, triceps strength training",
+        "start_date_local": "2026-02-01T16:21:29",
         "blocks": [
             {
                 "name": "Warmup",
