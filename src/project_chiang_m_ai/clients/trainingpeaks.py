@@ -60,9 +60,9 @@ class TrainingPeaksClient(ISportPlatform):
         if self._access_token:
             return self._access_token
 
-        if not settings.TP_AUTH_COOKIE:
+        if not settings.TP_AUTH_COOKIE or not settings.TP_AUTH_COOKIE.get_secret_value():
             raise ValueError(
-                "TP_AUTH_COOKIE is not set. Please configure it in your .env file."
+                "TP_AUTH_COOKIE is not set or empty. Please configure it in your .env file."
             )
         cookie = settings.TP_AUTH_COOKIE.get_secret_value()
         url = f"{BASE_URL}/users/v3/token"
