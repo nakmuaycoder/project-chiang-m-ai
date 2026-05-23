@@ -7,7 +7,7 @@ cookie-to-token exchange and workout management.
 
 import json
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import requests
 from dateutil import parser
@@ -19,6 +19,22 @@ from project_chiang_m_ai.models.strength_workout import StrengthWorkout
 from project_chiang_m_ai.models.workout import WorkoutUnion
 
 BASE_URL = "https://tpapi.trainingpeaks.com"
+
+# Default intensity zones boundaries (percentages)
+DEFAULT_LOW_INTENSITY = 50.0
+DEFAULT_HIGH_INTENSITY = 60.0
+
+# Mapping of TrainingPeaks sport family and type IDs
+# Format: {sport_type: (family_id, type_id)}
+TP_SPORT_MAP = {
+    "Run": (3, 3),
+    "TrailRun": (3, 3),
+    "Bike": (2, 2),
+    "Ride": (2, 2),
+    "Swim": (1, 1),
+    "WeightTraining": (9, 9),
+    "Strength": (9, 9),
+}
 
 
 @dataclass(frozen=True)
@@ -109,17 +125,8 @@ class TrainingPeaksClient(ISportPlatform):
                 dt_object = parser.isoparse(start_date)
                 start_date = dt_object.strftime("%Y-%m-%d")
 
-            # Mapping of TP sport types
-            SPORT_MAP = {
-                "Run": (3, 3),
-                "TrailRun": (3, 3),
-                "Bike": (2, 2),
-                "Ride": (2, 2),
-                "Swim": (1, 1),
-                "WeightTraining": (9, 9),
-                "Strength": (9, 9),
-            }
-            family_id, type_id = SPORT_MAP.get(workout.type, (3, 3))  # Default to Run
+            # Default to Run if type is unknown
+            family_id, type_id = TP_SPORT_MAP.get(workout.type, (3, 3))
 
             # Construct TP payload
             payload = {
@@ -191,8 +198,9 @@ class TrainingPeaksClient(ISportPlatform):
     def get_wellness_data(self) -> list[dict]:
         """Fetches HRV and Pulse metrics."""
         days = settings.WELLNESS_HISTORY_DAYS
-        end = datetime.now().strftime("%Y-%m-%d")
-        start = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
+        now_utc = datetime.now(timezone.utc)
+        end = now_utc.strftime("%Y-%m-%d")
+        start = (now_utc - timedelta(days=days)).strftime("%Y-%m-%d")
 
         token = self._get_access_token()
         athlete_id = self._get_athlete_id()
@@ -247,8 +255,16 @@ class TrainingPeaksClient(ISportPlatform):
             inner_steps = []
             for step in block.steps:
                 # Extract zones
-                low = step.zone.start if step.zone.start is not None else 50
-                high = step.zone.end if step.zone.end is not None else 60
+                low = (
+                    step.zone.start
+                    if step.zone.start is not None
+                    else DEFAULT_LOW_INTENSITY
+                )
+                high = (
+                    step.zone.end
+                    if step.zone.end is not None
+                    else DEFAULT_HIGH_INTENSITY
+                )
 
                 # Map intensity class
                 tp_class = "active"
@@ -304,8 +320,16 @@ class TrainingPeaksClient(ISportPlatform):
         for block in workout.steps:
             for _ in range(block.repetitions):
                 for step in block.steps:
-                    low = step.zone.start if step.zone.start is not None else 50
-                    high = step.zone.end if step.zone.end is not None else 60
+                    low = (
+                        step.zone.start
+                        if step.zone.start is not None
+                        else DEFAULT_LOW_INTENSITY
+                    )
+                    high = (
+                        step.zone.end
+                        if step.zone.end is not None
+                        else DEFAULT_HIGH_INTENSITY
+                    )
                     midpoint = (low + high) / 2.0
                     weighted_sum += step.duration * (midpoint**4)
 

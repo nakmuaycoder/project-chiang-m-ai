@@ -134,6 +134,7 @@ def cmd_clean(args):
     # Separate past and future workouts based on start date
     past_mappings = []
     future_mappings = []
+    now = datetime.now()
 
     for mapping in tracker.history.mappings:
         try:
@@ -142,7 +143,7 @@ def cmd_clean(args):
             if start_dt.tzinfo is not None:
                 now_cmp = datetime.now(start_dt.tzinfo)
             else:
-                now_cmp = datetime.now()
+                now_cmp = now
 
             if start_dt > now_cmp:
                 future_mappings.append(mapping)
@@ -204,23 +205,25 @@ def cmd_clean(args):
             deleted += 1
 
     # Keep past mappings and failed future mappings in the database
-    tracker.history.mappings = past_mappings + remaining_future
-    tracker._save_history()
-
     if args.clear_db:
-        # If `--clear-db` was requested, we only clear the database mappings
-        # for the future workouts that were successfully deleted.
-        # Since the user wants to keep the database for past workouts,
-        # we preserve past workouts in all circumstances.
+        tracker.history.mappings = remaining_future
+        tracker._save_history()
         logger.info(
             "ℹ️  Database updated: successfully deleted future workouts "
-            "removed. Past workouts kept."
+            "removed from platform & DB. "
+            "Past workouts removed from local DB (kept on platform)."
         )
+    else:
+        tracker.history.mappings = past_mappings + remaining_future
+        tracker._save_history()
 
     logger.info("")
     logger.info("=" * 70)
     logger.info(f"✅ Deleted: {deleted}, ❌ Failed: {failed}")
-    logger.info(f"📊 Remaining in DB (past/completed): {len(past_mappings)}")
+    if args.clear_db:
+        logger.info("📊 Remaining in DB: 0 (database cleared)")
+    else:
+        logger.info(f"📊 Remaining in DB (past/completed): {len(past_mappings)}")
     logger.info("=" * 70)
 
 

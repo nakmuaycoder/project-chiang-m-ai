@@ -87,7 +87,7 @@ def get_platform() -> ISportPlatform:
 
         path = dest_config.get("path", "data/runs")
         return LocalArchivePlatform(output_dir=path)
-    elif dest_type == "training_peaks":
+    elif dest_type in ["training_peaks", "trainingpeaks"]:
         # TrainingPeaks platform
         from project_chiang_m_ai.clients.trainingpeaks import TrainingPeaksClient
 
