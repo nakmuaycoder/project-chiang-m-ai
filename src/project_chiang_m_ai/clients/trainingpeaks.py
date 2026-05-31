@@ -525,12 +525,23 @@ class TrainingPeaksClient(ISportPlatform):
                         )
                         if analysis_r.status_code == 200:
                             analysis_data = analysis_r.json()
-                            data_elements = analysis_data.get("dataElements", [])
+                            if not isinstance(analysis_data, dict):
+                                logger.warning(
+                                    f"⚠️ Unexpected analysis type for {workout_id}: "
+                                    f"expected dict, got {type(analysis_data).__name__}"
+                                )
+                                continue
+
+                            data_elements = analysis_data.get("dataElements")
+                            if not isinstance(data_elements, list):
+                                data_elements = []
+
                             hr_element = next(
                                 (
                                     de
                                     for de in data_elements
-                                    if de.get("identifier") == "HeartRate"
+                                    if isinstance(de, dict)
+                                    and de.get("identifier") == "HeartRate"
                                 ),
                                 None,
                             )
@@ -538,17 +549,22 @@ class TrainingPeaksClient(ISportPlatform):
                                 (
                                     de
                                     for de in data_elements
-                                    if de.get("identifier") == "Power"
+                                    if isinstance(de, dict)
+                                    and de.get("identifier") == "Power"
                                 ),
                                 None,
                             )
 
-                            hr_zones = hr_element.get("zones", []) if hr_element else []
-                            pwr_zones = (
-                                pwr_element.get("zones", []) if pwr_element else []
-                            )
+                            hr_zones = hr_element.get("zones") if hr_element else []
+                            pwr_zones = pwr_element.get("zones") if pwr_element else []
+                            if not isinstance(hr_zones, list):
+                                hr_zones = []
+                            if not isinstance(pwr_zones, list):
+                                pwr_zones = []
 
-                            data_points = analysis_data.get("data", [])
+                            data_points = analysis_data.get("data")
+                            if not isinstance(data_points, list):
+                                data_points = []
 
                             hr_zone_seconds = [0] * 10
                             pwr_zone_seconds = [0] * 10
@@ -556,7 +572,15 @@ class TrainingPeaksClient(ISportPlatform):
                             for i in range(1, len(data_points)):
                                 prev_pt = data_points[i - 1]
                                 curr_pt = data_points[i]
-                                dt = curr_pt["time"] - prev_pt["time"]
+                                if not isinstance(prev_pt, dict) or not isinstance(
+                                    curr_pt, dict
+                                ):
+                                    continue
+                                t_curr = curr_pt.get("time")
+                                t_prev = prev_pt.get("time")
+                                if t_curr is None or t_prev is None:
+                                    continue
+                                dt = t_curr - t_prev
                                 if dt <= 0:
                                     continue
 
