@@ -264,6 +264,116 @@ def cmd_status(args):
             logger.info("")
 
 
+def cmd_tp_fetch(args):
+    """Fetch workouts and metrics from TrainingPeaks and save to CSV files."""
+    import csv
+
+    from project_chiang_m_ai.clients.trainingpeaks import TrainingPeaksClient
+
+    logger.info("=" * 70)
+    logger.info("📥 TrainingPeaks Data Fetcher")
+    logger.info("=" * 70)
+    logger.info(f"Start Date: {args.start}")
+    logger.info(f"End Date:   {args.end}")
+    logger.info("")
+
+    client = TrainingPeaksClient()
+
+    # 1. Fetch workouts
+    try:
+        workouts = client.get_workouts(args.start, args.end)
+        logger.info(f"💾 Writing {len(workouts)} workout(s) to {args.out_workouts}...")
+
+        WORKOUTS_HEADERS = [
+            "Title",
+            "WorkoutType",
+            "WorkoutDescription",
+            "PlannedDuration",
+            "PlannedDistanceInMeters",
+            "WorkoutDay",
+            "CoachComments",
+            "DistanceInMeters",
+            "PowerAverage",
+            "PowerMax",
+            "Energy",
+            "AthleteComments",
+            "TimeTotalInHours",
+            "VelocityAverage",
+            "VelocityMax",
+            "CadenceAverage",
+            "CadenceMax",
+            "HeartRateAverage",
+            "HeartRateMax",
+            "TorqueAverage",
+            "TorqueMax",
+            "IF",
+            "TSS",
+            "HRZone1Minutes",
+            "HRZone2Minutes",
+            "HRZone3Minutes",
+            "HRZone4Minutes",
+            "HRZone5Minutes",
+            "HRZone6Minutes",
+            "HRZone7Minutes",
+            "HRZone8Minutes",
+            "HRZone9Minutes",
+            "HRZone10Minutes",
+            "PWRZone1Minutes",
+            "PWRZone2Minutes",
+            "PWRZone3Minutes",
+            "PWRZone4Minutes",
+            "PWRZone5Minutes",
+            "PWRZone6Minutes",
+            "PWRZone7Minutes",
+            "PWRZone8Minutes",
+            "PWRZone9Minutes",
+            "PWRZone10Minutes",
+            "Rpe",
+            "Feeling",
+            "Elevation",
+        ]
+
+        with open(args.out_workouts, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(
+                f, fieldnames=WORKOUTS_HEADERS, quoting=csv.QUOTE_ALL
+            )
+            writer.writeheader()
+            for w in workouts:
+                # Filter to only headers keys to avoid any extra fields
+                filtered_w = {k: w.get(k, "") for k in WORKOUTS_HEADERS}
+                writer.writerow(filtered_w)
+
+        logger.info("✅ Workouts written successfully!")
+    except Exception as e:
+        logger.error(f"❌ Failed to fetch/write workouts: {e}")
+
+    # 2. Fetch metrics
+    try:
+        metrics = client.get_metrics(args.start, args.end)
+        logger.info(
+            f"💾 Writing {len(metrics)} metric record(s) to {args.out_metrics}..."
+        )
+
+        METRICS_HEADERS = ["Timestamp", "Type", "Value"]
+
+        with open(args.out_metrics, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(
+                f, fieldnames=METRICS_HEADERS, quoting=csv.QUOTE_ALL
+            )
+            writer.writeheader()
+            for m in metrics:
+                filtered_m = {k: m.get(k, "") for k in METRICS_HEADERS}
+                writer.writerow(filtered_m)
+
+        logger.info("✅ Metrics written successfully!")
+    except Exception as e:
+        logger.error(f"❌ Failed to fetch/write metrics: {e}")
+
+    logger.info("")
+    logger.info("=" * 70)
+    logger.info("🎉 Fetch completed!")
+
+
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
@@ -342,6 +452,29 @@ Examples:
         "adapt", help="Adapt today's workouts based on wellness data"
     )
     adapt_parser.set_defaults(func=cmd_adapt)
+
+    # tp-fetch command
+    tp_fetch_parser = subparsers.add_parser(
+        "tp-fetch",
+        help="Fetch and export TrainingPeaks workouts and wellness metrics to CSV",
+    )
+    tp_fetch_parser.add_argument(
+        "--start", required=True, help="Start date in YYYY-MM-DD format (inclusive)"
+    )
+    tp_fetch_parser.add_argument(
+        "--end", required=True, help="End date in YYYY-MM-DD format (inclusive)"
+    )
+    tp_fetch_parser.add_argument(
+        "--out-workouts",
+        default="workouts.csv",
+        help="Output path for workouts CSV (default: workouts.csv)",
+    )
+    tp_fetch_parser.add_argument(
+        "--out-metrics",
+        default="metrics.csv",
+        help="Output path for wellness metrics CSV (default: metrics.csv)",
+    )
+    tp_fetch_parser.set_defaults(func=cmd_tp_fetch)
 
     # Parse args
     args = parser.parse_args()

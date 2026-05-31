@@ -275,3 +275,89 @@ class IntervalicuClient(ISportPlatform):
         except Exception as e:
             logger.error(f"❌ Unexpected error fetching wellness history: {e}")
             return []
+
+    def get_workouts(self, start_date: str, end_date: str) -> list[dict]:
+        """
+        Fetches workouts from Intervals.icu between two dates.
+
+        Args:
+            start_date: Start date in ISO format (YYYY-MM-DD)
+            end_date: End date in ISO format (YYYY-MM-DD)
+
+        Returns:
+            List of workout dictionaries
+        """
+        auth_token = self.encode_auth()
+        headers = {
+            "Authorization": f"Basic {auth_token}",
+        }
+
+        athlete_id = settings.INTERVALS_ATHLETE_ID
+        url = f"{BASE_URL}/{athlete_id}/events?oldest={start_date}&newest={end_date}"
+
+        try:
+            logger.info(
+                f"📅 Fetching Intervals.icu workouts from {start_date} to {end_date}..."
+            )
+            response = requests.get(url, headers=headers, timeout=settings.API_TIMEOUT)
+            response.raise_for_status()
+            events = response.json()
+            return events
+        except requests.exceptions.RequestException as e:
+            logger.error(f"❌ Error fetching Intervals.icu workouts: {e}")
+            if hasattr(e, "response") and e.response is not None:
+                logger.info(f"   Status: {e.response.status_code}")
+                logger.info(f"   Response: {e.response.text}")
+            return []
+        except Exception as e:
+            logger.error(f"❌ Unexpected error fetching Intervals.icu workouts: {e}")
+            return []
+
+    def get_metrics(self, start_date: str, end_date: str) -> list[dict]:
+        """
+        Fetches wellness metrics from Intervals.icu between two dates.
+
+        Args:
+            start_date: Start date in ISO format (YYYY-MM-DD)
+            end_date: End date in ISO format (YYYY-MM-DD)
+
+        Returns:
+            List of metrics/wellness dictionaries
+        """
+        auth_token = self.encode_auth()
+        headers = {
+            "Authorization": f"Basic {auth_token}",
+        }
+
+        athlete_id = settings.INTERVALS_ATHLETE_ID
+        url = f"{BASE_URL}/{athlete_id}/wellness?oldest={start_date}&newest={end_date}"
+
+        try:
+            logger.info(
+                f"📊 Fetching Intervals.icu metrics: {start_date} to {end_date}..."
+            )
+            response = requests.get(url, headers=headers, timeout=settings.API_TIMEOUT)
+            response.raise_for_status()
+            wellness_data = response.json()
+
+            history = []
+            for entry in wellness_data:
+                history.append(
+                    {
+                        "date": entry.get("id"),
+                        "hrv": entry.get("hrv"),
+                        "resting_hr": entry.get("restingHR"),
+                    }
+                )
+            return history
+        except requests.exceptions.RequestException as e:
+            logger.error(f"❌ Error fetching Intervals.icu wellness metrics: {e}")
+            if hasattr(e, "response") and e.response is not None:
+                logger.info(f"   Status: {e.response.status_code}")
+                logger.info(f"   Response: {e.response.text}")
+            return []
+        except Exception as e:
+            logger.error(
+                f"❌ Unexpected error fetching Intervals.icu wellness metrics: {e}"
+            )
+            return []

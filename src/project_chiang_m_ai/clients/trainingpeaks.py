@@ -363,3 +363,336 @@ class TrainingPeaksClient(ISportPlatform):
                 "tss": round(tss, 1),
             },
         }
+
+    def get_workouts(self, start_date: str, end_date: str) -> list[dict]:
+        """
+        Fetches workouts from TrainingPeaks between two dates.
+
+        Args:
+            start_date: Start date in ISO format (YYYY-MM-DD)
+            end_date: End date in ISO format (YYYY-MM-DD)
+
+        Returns:
+            List of workout dictionaries formatted for CSV export
+        """
+        import time
+
+        token = self._get_access_token()
+        athlete_id = self._get_athlete_id()
+        url = (
+            f"{BASE_URL}/fitness/v6/athletes/{athlete_id}/"
+            f"workouts/{start_date}/{end_date}"
+        )
+
+        headers = {"Authorization": f"Bearer {token}"}
+
+        try:
+            logger.info(
+                f"📅 Fetching TrainingPeaks workouts from {start_date} to {end_date}..."
+            )
+            response = requests.get(url, headers=headers, timeout=settings.API_TIMEOUT)
+            response.raise_for_status()
+            workouts = response.json()
+
+            logger.info(
+                f"✅ Found {len(workouts)} workouts in range. "
+                "Fetching analysis & formatting..."
+            )
+
+            TP_WORKOUT_TYPE_MAP = {
+                1: "Swim",
+                2: "Bike",
+                3: "Run",
+                9: "Strength",
+                13: "Walk",
+            }
+
+            def val_or_empty(val):
+                return val if val is not None else ""
+
+            records = []
+            for w in workouts:
+                workout_id = w.get("workoutId")
+                if not workout_id:
+                    continue
+
+                # Format comments
+                athlete_comments_list = []
+                coach_comments_list = []
+                for c in w.get("workoutComments", []):
+                    try:
+                        dt_created = parser.isoparse(c["dateCreated"])
+                        dt_str = dt_created.strftime("%m/%d/%Y")
+                        formatted_comment = (
+                            f" *{dt_str} {c['commenterName']}: {c['comment']}*"
+                        )
+                        if c.get("isCoach"):
+                            coach_comments_list.append(formatted_comment)
+                        else:
+                            athlete_comments_list.append(formatted_comment)
+                    except Exception:
+                        pass
+
+                athlete_comments = "\n".join(athlete_comments_list)
+                coach_comments = "\n".join(coach_comments_list)
+
+                # Initialize CSV dictionary with default empty strings
+                record = {
+                    "Title": val_or_empty(w.get("title")),
+                    "WorkoutType": TP_WORKOUT_TYPE_MAP.get(
+                        w.get("workoutTypeValueId"), val_or_empty(w.get("userTags"))
+                    ),
+                    "WorkoutDescription": val_or_empty(w.get("description")),
+                    "PlannedDuration": val_or_empty(w.get("totalTimePlanned")),
+                    "PlannedDistanceInMeters": val_or_empty(w.get("distancePlanned")),
+                    "WorkoutDay": w.get("workoutDay")[:10]
+                    if w.get("workoutDay")
+                    else "",
+                    "CoachComments": coach_comments,
+                    "DistanceInMeters": val_or_empty(w.get("distance")),
+                    "PowerAverage": val_or_empty(w.get("powerAverage")),
+                    "PowerMax": val_or_empty(w.get("powerMaximum")),
+                    "Energy": val_or_empty(w.get("energy")),
+                    "AthleteComments": athlete_comments,
+                    "TimeTotalInHours": val_or_empty(w.get("totalTime")),
+                    "VelocityAverage": val_or_empty(w.get("velocityAverage")),
+                    "VelocityMax": val_or_empty(w.get("velocityMaximum")),
+                    "CadenceAverage": val_or_empty(w.get("cadenceAverage")),
+                    "CadenceMax": val_or_empty(w.get("cadenceMaximum")),
+                    "HeartRateAverage": val_or_empty(w.get("heartRateAverage")),
+                    "HeartRateMax": val_or_empty(w.get("heartRateMaximum")),
+                    "TorqueAverage": val_or_empty(w.get("torqueAverage")),
+                    "TorqueMax": val_or_empty(w.get("torqueMaximum")),
+                    "IF": val_or_empty(w.get("if")),
+                    "TSS": val_or_empty(w.get("tssActual")),
+                    # Zone columns initialized to empty
+                    "HRZone1Minutes": "",
+                    "HRZone2Minutes": "",
+                    "HRZone3Minutes": "",
+                    "HRZone4Minutes": "",
+                    "HRZone5Minutes": "",
+                    "HRZone6Minutes": "",
+                    "HRZone7Minutes": "",
+                    "HRZone8Minutes": "",
+                    "HRZone9Minutes": "",
+                    "HRZone10Minutes": "",
+                    "PWRZone1Minutes": "",
+                    "PWRZone2Minutes": "",
+                    "PWRZone3Minutes": "",
+                    "PWRZone4Minutes": "",
+                    "PWRZone5Minutes": "",
+                    "PWRZone6Minutes": "",
+                    "PWRZone7Minutes": "",
+                    "PWRZone8Minutes": "",
+                    "PWRZone9Minutes": "",
+                    "PWRZone10Minutes": "",
+                    "Rpe": val_or_empty(w.get("rpe")),
+                    "Feeling": val_or_empty(w.get("feeling")),
+                    "Elevation": val_or_empty(w.get("elevationGain")),
+                }
+
+                # Retrieve analysis if workout is completed and has duration/details
+                total_time = w.get("totalTime")
+                if total_time and total_time > 0:
+                    time.sleep(0.15)  # Rate limiting throttle
+                    analysis_url = (
+                        "https://api.peakswaresb.com/workout-analysis/v1/analyze"
+                    )
+                    analysis_headers = {
+                        "Authorization": f"Bearer {token}",
+                        "Accept": "application/json",
+                        "Content-Type": "application/json",
+                    }
+                    analysis_payload = {
+                        "workoutId": workout_id,
+                        "viewingPersonId": athlete_id,
+                    }
+
+                    try:
+                        analysis_r = requests.post(
+                            analysis_url,
+                            headers=analysis_headers,
+                            json=analysis_payload,
+                            timeout=settings.API_TIMEOUT,
+                        )
+                        if analysis_r.status_code == 200:
+                            analysis_data = analysis_r.json()
+                            data_elements = analysis_data.get("dataElements", [])
+                            hr_element = next(
+                                (
+                                    de
+                                    for de in data_elements
+                                    if de.get("identifier") == "HeartRate"
+                                ),
+                                None,
+                            )
+                            pwr_element = next(
+                                (
+                                    de
+                                    for de in data_elements
+                                    if de.get("identifier") == "Power"
+                                ),
+                                None,
+                            )
+
+                            hr_zones = hr_element.get("zones", []) if hr_element else []
+                            pwr_zones = (
+                                pwr_element.get("zones", []) if pwr_element else []
+                            )
+
+                            data_points = analysis_data.get("data", [])
+
+                            hr_zone_seconds = [0] * 10
+                            pwr_zone_seconds = [0] * 10
+
+                            for i in range(1, len(data_points)):
+                                prev_pt = data_points[i - 1]
+                                curr_pt = data_points[i]
+                                dt = curr_pt["time"] - prev_pt["time"]
+                                if dt <= 0:
+                                    continue
+
+                                hr = curr_pt.get("HeartRate")
+                                if hr is not None:
+                                    for idx, z in enumerate(hr_zones):
+                                        z_min = z.get("min", 0)
+                                        z_max = z.get("max", 999)
+                                        if z_max == 0 or z_max is None:
+                                            z_max = 999
+                                        if z_min <= hr <= z_max:
+                                            if idx < 10:
+                                                hr_zone_seconds[idx] += dt
+                                            break
+
+                                pwr = curr_pt.get("Power")
+                                if pwr is not None:
+                                    for idx, z in enumerate(pwr_zones):
+                                        z_min = z.get("min", 0)
+                                        z_max = z.get("max", 999)
+                                        if z_max == 0 or z_max is None:
+                                            z_max = 999
+                                        if z_min <= pwr <= z_max:
+                                            if idx < 10:
+                                                pwr_zone_seconds[idx] += dt
+                                            break
+
+                            # Map zone seconds to rounded minutes
+                            for idx in range(10):
+                                if idx < len(hr_zones):
+                                    record[f"HRZone{idx + 1}Minutes"] = round(
+                                        hr_zone_seconds[idx] / 60
+                                    )
+                                if idx < len(pwr_zones):
+                                    record[f"PWRZone{idx + 1}Minutes"] = round(
+                                        pwr_zone_seconds[idx] / 60
+                                    )
+
+                    except Exception as analysis_err:
+                        logger.warning(
+                            f"⚠️ No analysis for workout {workout_id}: {analysis_err}"
+                        )
+
+                records.append(record)
+
+            return records
+        except Exception as e:
+            logger.error(f"❌ TP get_workouts Error: {e}")
+            return []
+
+    def get_metrics(self, start_date: str, end_date: str) -> list[dict]:
+        """
+        Fetches metrics/wellness data from TrainingPeaks between two dates.
+
+        Args:
+            start_date: Start date in ISO format (YYYY-MM-DD)
+            end_date: End date in ISO format (YYYY-MM-DD)
+
+        Returns:
+            List of metrics dictionaries formatted for CSV export
+        """
+        token = self._get_access_token()
+        athlete_id = self._get_athlete_id()
+        url = (
+            f"{BASE_URL}/metrics/v3/athletes/{athlete_id}/"
+            f"consolidatedtimedmetrics/{start_date}/{end_date}"
+        )
+
+        headers = {"Authorization": f"Bearer {token}"}
+
+        try:
+            logger.info(
+                f"📊 Fetching TrainingPeaks metrics from {start_date} to {end_date}..."
+            )
+            response = requests.get(url, headers=headers, timeout=settings.API_TIMEOUT)
+            response.raise_for_status()
+            data = response.json()
+
+            LABEL_MAP = {
+                "Time in Deep Sleep": "Time In Deep Sleep",
+                "Time in Light Sleep": "Time In Light Sleep",
+                "Time in REM Sleep": "Time In REM Sleep",
+            }
+
+            records = []
+            for day in data:
+                day_ts = day.get("timeStamp")
+                if not day_ts:
+                    continue
+
+                for detail in day.get("details", []):
+                    label = detail.get("label", "")
+                    label = LABEL_MAP.get(label, label)
+
+                    val = detail.get("value")
+                    val_str = ""
+
+                    if isinstance(val, list):
+                        parts = []
+                        if len(val) >= 3:
+                            min_val, max_val, avg_val = val[0], val[1], val[2]
+                            if min_val is not None:
+                                min_fmt = (
+                                    int(min_val)
+                                    if isinstance(min_val, (int, float))
+                                    else min_val
+                                )
+                                parts.append(f"Min : {min_fmt}")
+                            if max_val is not None:
+                                max_fmt = (
+                                    int(max_val)
+                                    if isinstance(max_val, (int, float))
+                                    else max_val
+                                )
+                                parts.append(f"Max : {max_fmt}")
+                            if avg_val is not None:
+                                avg_fmt = (
+                                    int(avg_val)
+                                    if isinstance(avg_val, (int, float))
+                                    else avg_val
+                                )
+                                parts.append(f"Avg : {avg_fmt}")
+                        val_str = " / ".join(parts)
+                    elif isinstance(val, (int, float)):
+                        if isinstance(val, float) and label == "Sleep Hours":
+                            val_str = str(round(val, 2))
+                        elif isinstance(val, float) and val.is_integer():
+                            val_str = str(int(val))
+                        else:
+                            val_str = str(val)
+                    elif val is not None:
+                        val_str = str(val)
+
+                    # Get timestamp for this detail or fallback to day's timestamp
+                    detail_ts = detail.get("time") or day_ts
+                    # Convert 'T' to space
+                    formatted_ts = detail_ts.replace("T", " ")
+
+                    records.append(
+                        {"Timestamp": formatted_ts, "Type": label, "Value": val_str}
+                    )
+
+            logger.info(f"✅ Retrieved {len(records)} metric records")
+            return records
+        except Exception as e:
+            logger.error(f"❌ TP get_metrics Error: {e}")
+            return []
