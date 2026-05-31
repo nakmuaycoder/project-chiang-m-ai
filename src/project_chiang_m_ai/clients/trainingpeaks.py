@@ -393,6 +393,12 @@ class TrainingPeaksClient(ISportPlatform):
             response = requests.get(url, headers=headers, timeout=settings.API_TIMEOUT)
             response.raise_for_status()
             workouts = response.json()
+            if not isinstance(workouts, list):
+                logger.error(
+                    f"❌ Unexpected response format from TP workouts: "
+                    f"expected list, got {type(workouts).__name__}"
+                )
+                return []
 
             logger.info(
                 f"✅ Found {len(workouts)} workouts in range. "
@@ -412,6 +418,8 @@ class TrainingPeaksClient(ISportPlatform):
 
             records = []
             for w in workouts:
+                if not isinstance(w, dict):
+                    continue
                 workout_id = w.get("workoutId")
                 if not workout_id:
                     continue
@@ -419,7 +427,7 @@ class TrainingPeaksClient(ISportPlatform):
                 # Format comments
                 athlete_comments_list = []
                 coach_comments_list = []
-                for c in w.get("workoutComments", []):
+                for c in w.get("workoutComments") or []:
                     try:
                         dt_created = parser.isoparse(c["dateCreated"])
                         dt_str = dt_created.strftime("%m/%d/%Y")
@@ -626,6 +634,12 @@ class TrainingPeaksClient(ISportPlatform):
             response = requests.get(url, headers=headers, timeout=settings.API_TIMEOUT)
             response.raise_for_status()
             data = response.json()
+            if not isinstance(data, list):
+                logger.error(
+                    f"❌ Unexpected response format from TP metrics: "
+                    f"expected list, got {type(data).__name__}"
+                )
+                return []
 
             LABEL_MAP = {
                 "Time in Deep Sleep": "Time In Deep Sleep",
@@ -635,11 +649,15 @@ class TrainingPeaksClient(ISportPlatform):
 
             records = []
             for day in data:
+                if not isinstance(day, dict):
+                    continue
                 day_ts = day.get("timeStamp")
                 if not day_ts:
                     continue
 
-                for detail in day.get("details", []):
+                for detail in day.get("details") or []:
+                    if not isinstance(detail, dict):
+                        continue
                     label = detail.get("label", "")
                     label = LABEL_MAP.get(label, label)
 
