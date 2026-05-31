@@ -302,7 +302,13 @@ class IntervalicuClient(ISportPlatform):
             response = requests.get(url, headers=headers, timeout=settings.API_TIMEOUT)
             response.raise_for_status()
             events = response.json()
-            return events
+            if not isinstance(events, list):
+                logger.error(
+                    f"❌ Unexpected response format from Intervals.icu: "
+                    f"expected list, got {type(events).__name__}"
+                )
+                return []
+            return [e for e in events if isinstance(e, dict)]
         except requests.exceptions.RequestException as e:
             logger.error(f"❌ Error fetching Intervals.icu workouts: {e}")
             if hasattr(e, "response") and e.response is not None:
@@ -339,9 +345,17 @@ class IntervalicuClient(ISportPlatform):
             response = requests.get(url, headers=headers, timeout=settings.API_TIMEOUT)
             response.raise_for_status()
             wellness_data = response.json()
+            if not isinstance(wellness_data, list):
+                logger.error(
+                    f"❌ Unexpected response format from Intervals.icu wellness: "
+                    f"expected list, got {type(wellness_data).__name__}"
+                )
+                return []
 
             history = []
             for entry in wellness_data:
+                if not isinstance(entry, dict):
+                    continue
                 history.append(
                     {
                         "date": entry.get("id"),
