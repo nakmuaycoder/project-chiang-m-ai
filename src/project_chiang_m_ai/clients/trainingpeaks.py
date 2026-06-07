@@ -416,13 +416,27 @@ class TrainingPeaksClient(ISportPlatform):
             def val_or_empty(val):
                 return val if val is not None else ""
 
+            import sys
+
             records = []
-            for w in workouts:
+            total_workouts = len(workouts)
+            for idx, w in enumerate(workouts):
                 if not isinstance(w, dict):
                     continue
                 workout_id = w.get("workoutId")
                 if not workout_id:
                     continue
+
+                workout_title = w.get("title") or "Unnamed Workout"
+                percent = int(100 * (idx + 1) / total_workouts)
+                bar_length = 30
+                filled = int(bar_length * (idx + 1) // total_workouts)
+                bar = "█" * filled + "-" * (bar_length - filled)
+                sys.stdout.write(
+                    f"\r⏳ [{bar}] {percent}% | {idx + 1}/{total_workouts} | "
+                    f"Processing: {workout_title[:30]:<30}"
+                )
+                sys.stdout.flush()
 
                 # Format comments
                 athlete_comments_list = []
@@ -625,6 +639,10 @@ class TrainingPeaksClient(ISportPlatform):
                         )
 
                 records.append(record)
+
+            if total_workouts > 0:
+                sys.stdout.write("\n")
+                sys.stdout.flush()
 
             return records
         except Exception as e:
