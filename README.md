@@ -202,7 +202,7 @@ python -m project_chiang_m_ai tp-fetch --start YYYY-MM-DD --end YYYY-MM-DD
 
 **Example:**
 ```bash
-python -m project_chiang_m_ai tp-fetch --start 2026-05-10 --end 2026-05-31 --out-workouts my_workouts.csv --out-metrics my_metrics.csv
+uv run python -m project_chiang_m_ai tp-fetch --start 2026-01-01 --end 2026-02-31 --out-workouts test-workouts.csv --out-metrics test-metrics.csv
 ```
 
 ### Help

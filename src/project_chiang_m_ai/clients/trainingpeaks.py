@@ -7,6 +7,7 @@ cookie-to-token exchange and workout management.
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
 import requests
 from dateutil import parser
@@ -364,7 +365,12 @@ class TrainingPeaksClient(ISportPlatform):
             },
         }
 
-    def get_workouts(self, start_date: str, end_date: str) -> list[dict]:
+    def get_workouts(
+        self,
+        start_date: str,
+        end_date: str,
+        progress_callback: Any = None,
+    ) -> list[dict]:
         """
         Fetches workouts from TrainingPeaks between two dates.
 
@@ -428,15 +434,21 @@ class TrainingPeaksClient(ISportPlatform):
                     continue
 
                 workout_title = w.get("title") or "Unnamed Workout"
-                percent = int(100 * (idx + 1) / total_workouts)
-                bar_length = 30
-                filled = int(bar_length * (idx + 1) // total_workouts)
-                bar = "█" * filled + "-" * (bar_length - filled)
-                sys.stdout.write(
-                    f"\r⏳ [{bar}] {percent}% | {idx + 1}/{total_workouts} | "
-                    f"Processing: {workout_title[:30]:<30}"
-                )
-                sys.stdout.flush()
+                if progress_callback:
+                    try:
+                        progress_callback(idx + 1, total_workouts, workout_title)
+                    except Exception:
+                        pass
+                elif sys.stdout.isatty():
+                    percent = int(100 * (idx + 1) / total_workouts)
+                    bar_length = 30
+                    filled = int(bar_length * (idx + 1) // total_workouts)
+                    bar = "█" * filled + "-" * (bar_length - filled)
+                    sys.stdout.write(
+                        f"\r⏳ [{bar}] {percent}% | {idx + 1}/{total_workouts} | "
+                        f"Processing: {workout_title[:30]:<30}"
+                    )
+                    sys.stdout.flush()
 
                 # Format comments
                 athlete_comments_list = []
@@ -537,6 +549,7 @@ class TrainingPeaksClient(ISportPlatform):
                             json=analysis_payload,
                             timeout=settings.API_TIMEOUT,
                         )
+                        analysis_r.raise_for_status()
                         if analysis_r.status_code == 200:
                             analysis_data = analysis_r.json()
                             if not isinstance(analysis_data, dict):
@@ -601,9 +614,19 @@ class TrainingPeaksClient(ISportPlatform):
                                 hr = curr_pt.get("HeartRate")
                                 if hr is not None:
                                     for idx, z in enumerate(hr_zones):
-                                        z_min = z.get("min", 0)
-                                        z_max = z.get("max", 999)
-                                        if z_max == 0 or z_max is None:
+                                        if not isinstance(z, dict):
+                                            continue
+                                        z_min = (
+                                            z.get("min")
+                                            if z.get("min") is not None
+                                            else 0
+                                        )
+                                        z_max = (
+                                            z.get("max")
+                                            if z.get("max") is not None
+                                            else 999
+                                        )
+                                        if z_max == 0:
                                             z_max = 999
                                         if z_min <= hr <= z_max:
                                             if idx < 10:
@@ -613,9 +636,19 @@ class TrainingPeaksClient(ISportPlatform):
                                 pwr = curr_pt.get("Power")
                                 if pwr is not None:
                                     for idx, z in enumerate(pwr_zones):
-                                        z_min = z.get("min", 0)
-                                        z_max = z.get("max", 999)
-                                        if z_max == 0 or z_max is None:
+                                        if not isinstance(z, dict):
+                                            continue
+                                        z_min = (
+                                            z.get("min")
+                                            if z.get("min") is not None
+                                            else 0
+                                        )
+                                        z_max = (
+                                            z.get("max")
+                                            if z.get("max") is not None
+                                            else 999
+                                        )
+                                        if z_max == 0:
                                             z_max = 999
                                         if z_min <= pwr <= z_max:
                                             if idx < 10:
@@ -640,7 +673,7 @@ class TrainingPeaksClient(ISportPlatform):
 
                 records.append(record)
 
-            if total_workouts > 0:
+            if total_workouts > 0 and sys.stdout.isatty() and not progress_callback:
                 sys.stdout.write("\n")
                 sys.stdout.flush()
 

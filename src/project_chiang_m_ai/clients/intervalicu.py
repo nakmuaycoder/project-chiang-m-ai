@@ -352,18 +352,35 @@ class IntervalicuClient(ISportPlatform):
                 )
                 return []
 
-            history = []
+            records = []
             for entry in wellness_data:
                 if not isinstance(entry, dict):
                     continue
-                history.append(
-                    {
-                        "date": entry.get("id"),
-                        "hrv": entry.get("hrv"),
-                        "resting_hr": entry.get("restingHR"),
-                    }
-                )
-            return history
+                day_ts = entry.get("id")
+                if not day_ts:
+                    continue
+                formatted_ts = f"{day_ts} 00:00:00"
+
+                hrv = entry.get("hrv")
+                if hrv is not None:
+                    records.append(
+                        {
+                            "Timestamp": formatted_ts,
+                            "Type": "HRV",
+                            "Value": str(hrv),
+                        }
+                    )
+
+                resting_hr = entry.get("restingHR")
+                if resting_hr is not None:
+                    records.append(
+                        {
+                            "Timestamp": formatted_ts,
+                            "Type": "RestingHR",
+                            "Value": str(resting_hr),
+                        }
+                    )
+            return records
         except requests.exceptions.RequestException as e:
             logger.error(f"❌ Error fetching Intervals.icu wellness metrics: {e}")
             if hasattr(e, "response") and e.response is not None:

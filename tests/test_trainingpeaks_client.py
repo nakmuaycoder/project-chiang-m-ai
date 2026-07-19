@@ -1,5 +1,7 @@
 from unittest.mock import MagicMock, patch
 
+import requests
+
 from project_chiang_m_ai.clients.trainingpeaks import TrainingPeaksClient
 from project_chiang_m_ai.models.workout import Workout
 
@@ -190,3 +192,89 @@ def test_get_workouts(mock_get_athlete_id, mock_get_access_token, mock_get, mock
     assert w["HRZone3Minutes"] == 0
     assert w["HRZone4Minutes"] == ""
     assert w["Elevation"] == 46.0
+
+
+@patch("project_chiang_m_ai.clients.trainingpeaks.requests.post")
+@patch("project_chiang_m_ai.clients.trainingpeaks.requests.get")
+@patch.object(TrainingPeaksClient, "_get_access_token", return_value="mock-token")
+@patch.object(TrainingPeaksClient, "_get_athlete_id", return_value=12345)
+def test_get_workouts_null_zones(
+    mock_get_athlete_id, mock_get_access_token, mock_get, mock_post
+):
+    """Test get_workouts with explicit null values in zone boundaries does not crash."""
+    mock_get_r = MagicMock()
+    mock_get_r.status_code = 200
+    mock_get_r.json.return_value = [
+        {
+            "workoutId": 123,
+            "title": "Running",
+            "workoutTypeValueId": 3,
+            "totalTime": 1.0,
+        }
+    ]
+    mock_get.return_value = mock_get_r
+
+    # Mock analysis response with null min/max zone boundaries
+    mock_post_r = MagicMock()
+    mock_post_r.status_code = 200
+    mock_post_r.json.return_value = {
+        "workoutId": 123,
+        "dataElements": [
+            {
+                "identifier": "HeartRate",
+                "zones": [
+                    {"min": None, "max": 100},
+                    {"min": 101, "max": None},
+                ],
+            }
+        ],
+        "data": [
+            {"time": 0, "HeartRate": 90},
+            {"time": 60, "HeartRate": 95},
+        ],
+    }
+    mock_post.return_value = mock_post_r
+
+    client = TrainingPeaksClient()
+    workouts = client.get_workouts("2026-01-01", "2026-01-10")
+
+    assert len(workouts) == 1
+    w = workouts[0]
+    assert w["HRZone1Minutes"] == 1  # 95 is <= 100, min is None -> defaults to 0
+    assert w["HRZone2Minutes"] == 0  # no points in Zone 2
+
+
+@patch("project_chiang_m_ai.clients.trainingpeaks.requests.post")
+@patch("project_chiang_m_ai.clients.trainingpeaks.requests.get")
+@patch.object(TrainingPeaksClient, "_get_access_token", return_value="mock-token")
+@patch.object(TrainingPeaksClient, "_get_athlete_id", return_value=12345)
+def test_get_workouts_analysis_error(
+    mock_get_athlete_id, mock_get_access_token, mock_get, mock_post
+):
+    """Test get_workouts handles non-200 status code on analysis API gracefully."""
+    mock_get_r = MagicMock()
+    mock_get_r.status_code = 200
+    mock_get_r.json.return_value = [
+        {
+            "workoutId": 123,
+            "title": "Running",
+            "workoutTypeValueId": 3,
+            "totalTime": 1.0,
+        }
+    ]
+    mock_get.return_value = mock_get_r
+
+    # Mock analysis response with a 500 error
+    mock_post_r = MagicMock()
+    mock_post_r.status_code = 500
+    mock_post_r.raise_for_status.side_effect = requests.HTTPError(
+        "Internal Server Error"
+    )
+    mock_post.return_value = mock_post_r
+
+    client = TrainingPeaksClient()
+    workouts = client.get_workouts("2026-01-01", "2026-01-10")
+
+    # Should still return the workouts, just without analysis zones
+    assert len(workouts) == 1
+    assert workouts[0]["HRZone1Minutes"] == ""
