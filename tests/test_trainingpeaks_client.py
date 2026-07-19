@@ -278,3 +278,37 @@ def test_get_workouts_analysis_error(
     # Should still return the workouts, just without analysis zones
     assert len(workouts) == 1
     assert workouts[0]["HRZone1Minutes"] == ""
+
+
+@patch("project_chiang_m_ai.clients.trainingpeaks.requests.post")
+@patch("project_chiang_m_ai.clients.trainingpeaks.requests.get")
+@patch.object(TrainingPeaksClient, "_get_access_token", return_value="mock-token")
+@patch.object(TrainingPeaksClient, "_get_athlete_id", return_value=12345)
+def test_get_workouts_analysis_invalid_type(
+    mock_get_athlete_id, mock_get_access_token, mock_get, mock_post
+):
+    """Test get_workouts does not drop a workout when analysis JSON is invalid."""
+    mock_get_r = MagicMock()
+    mock_get_r.status_code = 200
+    mock_get_r.json.return_value = [
+        {
+            "workoutId": 123,
+            "title": "Running",
+            "workoutTypeValueId": 3,
+            "totalTime": 1.0,
+        }
+    ]
+    mock_get.return_value = mock_get_r
+
+    # Mock analysis response returning a list instead of a dict
+    mock_post_r = MagicMock()
+    mock_post_r.status_code = 200
+    mock_post_r.json.return_value = [{"invalid": "format"}]
+    mock_post.return_value = mock_post_r
+
+    client = TrainingPeaksClient()
+    workouts = client.get_workouts("2026-01-01", "2026-01-10")
+
+    # Should still return the workout, even if analysis elements are skipped
+    assert len(workouts) == 1
+    assert workouts[0]["Title"] == "Running"

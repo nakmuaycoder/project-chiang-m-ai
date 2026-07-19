@@ -553,11 +553,10 @@ class TrainingPeaksClient(ISportPlatform):
                         if analysis_r.status_code == 200:
                             analysis_data = analysis_r.json()
                             if not isinstance(analysis_data, dict):
-                                logger.warning(
-                                    f"⚠️ Unexpected analysis type for {workout_id}: "
+                                raise ValueError(
+                                    f"Unexpected analysis type for {workout_id}: "
                                     f"expected dict, got {type(analysis_data).__name__}"
                                 )
-                                continue
 
                             data_elements = analysis_data.get("dataElements")
                             if not isinstance(data_elements, list):
