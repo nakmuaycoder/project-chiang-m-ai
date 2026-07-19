@@ -5,6 +5,17 @@ All notable changes to **Project Chiang M-AI** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-05-31
+
+### Added
+- **Historical Data Export Interface**: Extended the `ISportPlatform` interface with unified `get_workouts` and `get_metrics` methods for platform-agnostic data retrieval.
+- **TrainingPeaks Data Fetching**:
+  - Implemented `get_workouts` with zone-time extraction (Heart Rate and Power) by querying the peakswaresb analysis API and mapping them to standard zones.
+  - Implemented `get_metrics` to retrieve consolidated daily health/wellness metrics, with support for composite metric formatting (e.g. Body Battery, Stress Level) and custom metric labeling.
+- **Intervals.icu Data Fetching**: Implemented parity `get_workouts` and `get_metrics` routing on top of Intervals.icu client APIs.
+- **CLI Export Command**: Added a new `tp-fetch` command allowing bulk CSV exports of workouts and wellness metrics for a given date range.
+- **Unit Testing**: Wrote robust unit tests for the data export logic with mocked API responses.
+
 ## [1.2.0] - 2026-05-17
 
 ### Added

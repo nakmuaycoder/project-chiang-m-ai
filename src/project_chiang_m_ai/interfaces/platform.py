@@ -45,3 +45,31 @@ class ISportPlatform(ABC):
             Dict containing at least {"success": bool}
         """
         pass
+
+    @abstractmethod
+    def get_workouts(self, start_date: str, end_date: str) -> list[dict]:
+        """
+        Fetches workouts from the platform between two dates.
+
+        Args:
+            start_date: Start date in ISO format (YYYY-MM-DD)
+            end_date: End date in ISO format (YYYY-MM-DD)
+
+        Returns:
+            List of workout dictionaries
+        """
+        pass
+
+    @abstractmethod
+    def get_metrics(self, start_date: str, end_date: str) -> list[dict]:
+        """
+        Fetches metrics/wellness data from the platform between two dates.
+
+        Args:
+            start_date: Start date in ISO format (YYYY-MM-DD)
+            end_date: End date in ISO format (YYYY-MM-DD)
+
+        Returns:
+            List of metrics/wellness dictionaries
+        """
+        pass
