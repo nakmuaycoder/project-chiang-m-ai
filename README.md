@@ -215,6 +215,75 @@ python -m project_chiang_m_ai --help
 python -m project_chiang_m_ai sync --help
 ```
 
+## 🍚 Daily Nutrition Plan & Free Mobile SMS Notifier
+
+Automated daily nutrition calculation (Cooked Hom Mali Jasmine Rice, 16h Banana snack, Oats, and intra-workout carbs) with Free Mobile SMS delivery and TrainingPeaks Day Notes sync.
+
+### 1. Setup & Credentials
+
+You can set credentials in `.env` or pass them directly via command-line arguments:
+
+#### Option A: Local `.env` file
+```env
+FREE_MOBILE_USER="YOUR_FREE_MOBILE_USER"
+FREE_MOBILE_PASS="your_free_mobile_pass_key"
+TRAININGPEAKS_COOKIE="your_tp_auth_cookie"
+TRAININGPEAKS_ATHLETE_ID="your_tp_athlete_id"
+SMS_LANG="fr"  # fr (French), en (English), th (Thai)
+```
+
+#### Option B: Pass Secrets directly via CLI
+You can pass Free Mobile credentials directly as CLI arguments:
+```bash
+uv run python scripts/notify_daily_rice.py --user "YOUR_FREE_MOBILE_USER" --pass-key "your_free_mobile_pass" --date 2026-10-06 --lang fr
+```
+
+#### Option C: Set Secrets on GitHub via `gh` CLI
+Set GitHub Repository Secrets directly from your terminal using the GitHub CLI (`gh`):
+```bash
+gh secret set FREE_MOBILE_USER --body "YOUR_FREE_MOBILE_USER"
+gh secret set FREE_MOBILE_PASS --body "your_free_mobile_pass_key"
+gh secret set TRAININGPEAKS_COOKIE --body "your_tp_auth_cookie"
+gh secret set TRAININGPEAKS_ATHLETE_ID --body "your_tp_athlete_id"
+gh secret set SMS_LANG --body "fr"
+```
+
+---
+
+### 2. Activating & Disabling SMS Notifications
+
+#### A. Command Line (CLI)
+- **Dry-run mode (print without sending SMS):**
+  ```bash
+  uv run python scripts/notify_daily_rice.py --dry-run
+  ```
+- **Disable SMS via Environment Variable:**
+  ```bash
+  SMS_DISABLED=true uv run python scripts/notify_daily_rice.py
+  ```
+- **Enable & Send SMS:**
+  ```bash
+  uv run python scripts/notify_daily_rice.py --date 2026-10-06 --lang fr
+  ```
+
+#### B. GitHub Actions
+- **Enable / Disable Automated Daily Cron (20:00 CEST / 18:00 UTC):**
+  - To **Disable**: Go to **GitHub Repository** -> **Actions** -> **Daily Rice Nutrition SMS Notifier** -> Click `...` -> **Disable workflow**.
+  - To **Enable**: Click **Enable workflow**.
+  - To **Trigger Manually**: Click **Run workflow** (`workflow_dispatch`).
+
+---
+
+### 3. Generate Calendar Day Notes on TrainingPeaks
+
+Regenerate all 65 Day Notes on your TrainingPeaks calendar through the Chiang Mai 160k race:
+```bash
+uv run python scripts/generate_all_rice_notes.py
+```
+
+---
+
+
 ## 🔄 Workflow
 
 1. **Generate your training plan** using Gemini 2.0 or ChatGPT o1

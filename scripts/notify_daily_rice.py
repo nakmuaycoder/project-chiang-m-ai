@@ -105,6 +105,25 @@ def main():
         default=os.getenv("SMS_LANG", "fr"),
         help="SMS language: fr (French), en (English), th (Thai).",
     )
+    parser.add_argument(
+        "--user",
+        "-u",
+        type=str,
+        default=os.getenv("FREE_MOBILE_USER"),
+        help="Free Mobile API User ID (overrides FREE_MOBILE_USER env var)",
+    )
+    parser.add_argument(
+        "--pass-key",
+        "-p",
+        type=str,
+        default=os.getenv("FREE_MOBILE_PASS") or os.getenv("FREE_MOBILE_KEY"),
+        help="Free Mobile API Pass Key (overrides FREE_MOBILE_PASS env var)",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print the formatted SMS without sending via API",
+    )
     args = parser.parse_args()
 
     if args.date:
@@ -141,8 +160,12 @@ def main():
     print(sms_msg)
     print("========================================")
 
-    user = os.getenv("FREE_MOBILE_USER")
-    pass_key = os.getenv("FREE_MOBILE_PASS") or os.getenv("FREE_MOBILE_KEY")
+    if args.dry_run or os.getenv("SMS_DISABLED", "false").lower() == "true":
+        logger.info("ℹ️ Dry-run mode enabled or SMS_DISABLED=true. SMS skipped.")
+        sys.exit(0)
+
+    user = args.user
+    pass_key = args.pass_key
 
     if user and pass_key:
         logger.info(
@@ -154,9 +177,7 @@ def main():
         else:
             sys.exit(1)
     else:
-        logger.warning(
-            "⚠️ FREE_MOBILE_USER or FREE_MOBILE_PASS not set in env. SMS skipped."
-        )
+        logger.warning("⚠️ FREE_MOBILE_USER or FREE_MOBILE_PASS not set. SMS skipped.")
         sys.exit(0)
 
 
