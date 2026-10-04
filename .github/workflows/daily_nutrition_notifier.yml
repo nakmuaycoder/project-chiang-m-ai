@@ -2,8 +2,8 @@ name: Daily Rice Nutrition SMS Notifier
 
 on:
   schedule:
-    # Runs every day at 18:00 UTC (20:00 CEST)
-    - cron: '0 18 * * *'
+    # Runs every day at 08:00 UTC (10:00 CEST Paris time)
+    - cron: '0 8 * * *'
   workflow_dispatch:
 
 jobs:

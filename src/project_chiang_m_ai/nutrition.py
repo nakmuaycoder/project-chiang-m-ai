@@ -1,11 +1,12 @@
 """
 Module: project_chiang_m_ai.nutrition
 
-Daily carbohydrate calculation, intra-workout fueling (Gels & Sports Drink),
+Daily carbohydrate calculation, BMR baseline customization, intra-workout fueling,
 Hom Mali Jasmine Rice (Rice Cooker ratio), and multi-language formatting (FR, EN, TH)
 for Chiang Mai 160k.
 """
 
+import os
 import re
 from datetime import datetime
 
@@ -97,10 +98,26 @@ NUTRITION_TRANSLATIONS = {
 }
 
 
-def calculate_rice_plan(day_str: str, workouts: list[dict]) -> dict:
-    """Calculates daily Hom Mali rice, oats, intra-workout carbs, and snack targets."""
+def calculate_rice_plan(
+    day_str: str,
+    workouts: list[dict],
+    base_rice_meal: int | None = None,
+    base_oats: int | None = None,
+) -> dict:
+    """
+    Calculates daily Hom Mali rice, oats, intra-workout carbs, and snack targets.
+
+    BMR (Basal Metabolic Rate) baseline is determined by base_rice_meal
+    (default: 120g cooked Hom Mali per meal) and base_oats (default: 60g).
+    Can be configured via arguments or environment variables BASE_RICE_MEAL / BASE_OATS.
+    """
     dt = datetime.strptime(day_str, "%Y-%m-%d")
     is_weekend = dt.weekday() >= 5  # 5=Saturday, 6=Sunday
+
+    if base_rice_meal is None:
+        base_rice_meal = int(os.getenv("BASE_RICE_MEAL", "120"))
+    if base_oats is None:
+        base_oats = int(os.getenv("BASE_OATS", "60"))
 
     total_tss = sum(w.get("tssPlanned") or w.get("tssActual") or 0 for w in workouts)
     total_dur = sum(
@@ -110,63 +127,63 @@ def calculate_rice_plan(day_str: str, workouts: list[dict]) -> dict:
         w.get("elevationGainPlanned") or w.get("elevationGain") or 0 for w in workouts
     )
 
-    oats_breakfast = 60
+    oats_breakfast = base_oats
 
     if total_dur == 0 or total_tss == 0:
-        # --- REST DAY ---
+        # --- REST DAY (BMR BASELINE) ---
         cat_key = "rest"
         intra_carbs = 0
         has_snack = False
-        midi = 120
-        diner = 120
+        midi = base_rice_meal
+        diner = base_rice_meal
     elif total_dur <= 1.25 and total_tss < 75:
         # --- LIGHT SESSION ---
         cat_key = "light"
         intra_carbs = 30
         has_snack = True
         if is_weekend:
-            oats_breakfast = 70
-            midi = 160
-            diner = 140
+            oats_breakfast = base_oats + 10
+            midi = base_rice_meal + 40
+            diner = base_rice_meal + 20
         else:
-            midi = 140
-            diner = 160
+            midi = base_rice_meal + 20
+            diner = base_rice_meal + 40
     elif total_dur <= 2.6 or (total_tss < 160 and total_dplus < 1000):
         # --- MODERATE SESSION (e.g. 2h30 Figuerolles) ---
         cat_key = "moderate"
         intra_carbs = 120
         has_snack = True
         if is_weekend:
-            oats_breakfast = 80
-            midi = 180
-            diner = 180
+            oats_breakfast = base_oats + 20
+            midi = base_rice_meal + 60
+            diner = base_rice_meal + 60
         else:
-            midi = 180
-            diner = 220
+            midi = base_rice_meal + 60
+            diner = base_rice_meal + 100
     elif total_dur <= 4.0 or (total_tss < 260 and total_dplus < 1800):
         # --- HIGH VOLUME DAY ---
         cat_key = "high"
         intra_carbs = 200
         has_snack = True
         if is_weekend:
-            oats_breakfast = 80
-            midi = 220
-            diner = 220
+            oats_breakfast = base_oats + 20
+            midi = base_rice_meal + 100
+            diner = base_rice_meal + 100
         else:
-            midi = 220
-            diner = 250
+            midi = base_rice_meal + 100
+            diner = base_rice_meal + 130
     else:
         # --- PEAK / ULTRA DAY (5h+) ---
         cat_key = "peak"
         intra_carbs = 300
         has_snack = True
         if is_weekend:
-            oats_breakfast = 90
-            midi = 250
-            diner = 280
+            oats_breakfast = base_oats + 30
+            midi = base_rice_meal + 130
+            diner = base_rice_meal + 160
         else:
-            midi = 260
-            diner = 300
+            midi = base_rice_meal + 140
+            diner = base_rice_meal + 180
 
     total_rice_cuit = midi + diner
     total_rice_cru = int(total_rice_cuit / HOM_MALI_RATIO)
