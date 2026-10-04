@@ -1,8 +1,9 @@
 """
 Script: notify_daily_rice.py
 
-Fetches the TrainingPeaks Day Note for a target date (default: tomorrow),
-parses the cooked rice quantities (Matin, Midi, 16h, Dîner),
+Fetches the TrainingPeaks Day Note / Workouts for a target date (default: tomorrow),
+calculates/parses the cooked rice quantities (Matin, Midi, 16h, Dîner),
+formats the message in the selected language (fr: Français, en: English, th: Thai),
 strips/replaces emojis for Free Mobile SMS compatibility,
 and sends an SMS notification via the Free Mobile SMS API.
 """
@@ -25,6 +26,12 @@ from project_chiang_m_ai.clients.trainingpeaks import (  # noqa: E402
     TrainingPeaksClient,
 )
 from project_chiang_m_ai.logger import logger  # noqa: E402
+from project_chiang_m_ai.nutrition import (  # noqa: E402
+    SUPPORTED_LANGUAGES,
+    calculate_rice_plan,
+    format_rice_plan_message,
+    parse_rice_note_text,
+)
 
 FREE_MOBILE_API_URL = "https://smsapi.free-mobile.fr/sendmsg"
 
@@ -83,12 +90,20 @@ def send_free_mobile_sms(user: str, pass_key: str, message: str) -> bool:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Fetch daily rice nutrition plan and send SMS"
+        description="Fetch daily rice nutrition plan and send SMS in FR, EN, or TH"
     )
     parser.add_argument(
         "--date",
         type=str,
         help="Target date in YYYY-MM-DD format (default: tomorrow)",
+    )
+    parser.add_argument(
+        "--lang",
+        "-l",
+        type=str,
+        choices=SUPPORTED_LANGUAGES,
+        default=os.getenv("SMS_LANG", "fr"),
+        help="SMS language: fr (French), en (English), th (Thai).",
     )
     args = parser.parse_args()
 
@@ -98,7 +113,8 @@ def main():
         tomorrow_dt = datetime.now(timezone.utc) + timedelta(days=1)
         target_date = tomorrow_dt.strftime("%Y-%m-%d")
 
-    logger.info(f"🔍 Fetching Day Note for target date: {target_date}")
+    lang = args.lang.lower().strip()
+    logger.info(f"🔍 Fetching Day Note for {target_date} ({lang.upper()})")
 
     client = TrainingPeaksClient()
     notes = client.get_day_notes(target_date)
@@ -106,39 +122,33 @@ def main():
     rice_note = None
     for n in notes:
         title = n.get("title", "")
-        if "Riz" in title or "Nutrition" in title:
+        if "Riz" in title or "Rice" in title or "Nutrition" in title or "ข้าว" in title:
             rice_note = n
             break
 
     if not rice_note and notes:
         rice_note = notes[0]
 
-    if not rice_note:
-        raw_msg = (
-            f"Plan Riz ({target_date}) : "
-            "Aucune note trouvee sur TrainingPeaks pour demain."
-        )
+    if rice_note and rice_note.get("description"):
+        plan = parse_rice_note_text(rice_note.get("description"), target_date)
     else:
-        title = rice_note.get("title", "")
-        desc = rice_note.get("description", "")
-        raw_msg = f"[Riz {target_date}]\n{title}\n\n{desc}"
+        plan = calculate_rice_plan(target_date, [])
 
-    clean_msg = sanitize_for_free_mobile_sms(raw_msg)
+    _, sms_msg = format_rice_plan_message(plan, lang=lang, for_sms=True)
 
     print("========================================")
-    print("RAW MSG:")
-    print(raw_msg)
-    print("----------------------------------------")
-    print("CLEAN SMS MSG FOR FREE MOBILE:")
-    print(clean_msg)
+    print(f"SMS MSG (Language: {lang.upper()}):")
+    print(sms_msg)
     print("========================================")
 
     user = os.getenv("FREE_MOBILE_USER")
     pass_key = os.getenv("FREE_MOBILE_PASS") or os.getenv("FREE_MOBILE_KEY")
 
     if user and pass_key:
-        logger.info("🔑 Free Mobile credentials found. Sending SMS...")
-        success = send_free_mobile_sms(user, pass_key, raw_msg)
+        logger.info(
+            f"🔑 Free Mobile credentials found. Sending SMS in {lang.upper()}..."
+        )
+        success = send_free_mobile_sms(user, pass_key, sms_msg)
         if success:
             sys.exit(0)
         else:
