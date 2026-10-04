@@ -64,6 +64,10 @@ def sanitize_for_free_mobile_sms(text: str) -> str:
     for emoji, replacement in replacements.items():
         text = text.replace(emoji, replacement)
 
+    # Replace double newlines with single newline for Free Mobile API stability
+    while "\n\n" in text:
+        text = text.replace("\n\n", "\n")
+
     # Remove any remaining 4-byte unicode / emoji characters
     text = re.sub(r"[\U00010000-\U0010ffff]", "", text)
     return text

@@ -270,30 +270,35 @@ def format_rice_plan_message(
     tot_cru = plan["total_rice_cru"]
     intra = plan.get("intra_carbs", 0)
 
-    if for_sms:
-        title = f"[{t['title_prefix']} {date_str}]"
-    else:
-        title = f"🍚 {t['title_prefix']} : {tot_cuit}g ({category_name})"
-
     dur_str = f"{t['duration']}: {plan['total_dur']}h"
     tss_str = f"TSS: {plan['total_tss']}"
     dplus_str = f"{t['dplus']}: {plan['total_dplus']}m"
 
-    header = t["header"].format(date=date_str)
     cat_line = (
         f"{t['category_label']} : {category_name} ({dur_str} | {tss_str} | {dplus_str})"
     )
 
-    lines = [
-        title,
-        f"{t['title_prefix']} : {tot_cuit}g ({category_name})",
-        "",
-        header,
-        cat_line,
-        "",
-        t["breakdown_header"],
-        f"- 🌅 {t['breakfast'].format(oats=plan['oats_breakfast'])}",
-    ]
+    if for_sms:
+        title = f"[{t['title_prefix']} {date_str}]"
+        lines = [
+            title,
+            cat_line,
+            t["breakdown_header"],
+            f"- 🌅 {t['breakfast'].format(oats=plan['oats_breakfast'])}",
+        ]
+    else:
+        title = f"🍚 {t['title_prefix']} : {tot_cuit}g ({category_name})"
+        header = t["header"].format(date=date_str)
+        lines = [
+            title,
+            f"{t['title_prefix']} : {tot_cuit}g ({category_name})",
+            "",
+            header,
+            cat_line,
+            "",
+            t["breakdown_header"],
+            f"- 🌅 {t['breakfast'].format(oats=plan['oats_breakfast'])}",
+        ]
 
     if intra > 0:
         lines.append(f"- ⚡ {t['intra'].format(intra=intra)}")
@@ -344,6 +349,9 @@ def format_rice_plan_message(
         }
         for emoji, replacement in replacements.items():
             full_text = full_text.replace(emoji, replacement)
+
+        while "\n\n" in full_text:
+            full_text = full_text.replace("\n\n", "\n")
 
         full_text = re.sub(r"[\U00010000-\U0010ffff]", "", full_text)
 
