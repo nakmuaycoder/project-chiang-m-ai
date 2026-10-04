@@ -11,6 +11,7 @@
 > **Technical Deep Dives:**
 > - **Episode 4**: [The "Zero-UI" Warehouse: Shipping AI Plans to Production](https://nakmuaycoder.github.io/nakmuaycoder-r-d-lab/posts/project-chiang-m-ai/04-the-automation-warehouse/)
 > - **Episode 5**: [Full Auto Mode (Wellness-Based Adaptation)](https://nakmuaycoder.github.io/nakmuaycoder-r-d-lab/posts/project-chiang-m-ai/05-wellness-based-adaptation/)
+> - **Episode 10**: [Taming the Weight Anomaly: Automated Nutrition Engine & Hom Mali Rice Math](https://nakmuaycoder.github.io/nakmuaycoder-r-d-lab/posts/project-chiang-m-ai/10-nutrition-weight-management-and-rice-plan/)
 >
 > 🔖 **Version Control**: Use Git tags (e.g., `git checkout episode-5-v1.1.0`) to access the specific code state discussed in each post.
 
@@ -27,6 +28,7 @@ Full story, technical deep dives, and ongoing architectural logs are available a
 
 | Episode | Blog Post | Git Tag | Focus |
 | :--- | :--- | :--- | :--- |
+| **Ep. 10** | [Taming the Weight Anomaly (Automated Nutrition Engine)](https://nakmuaycoder.github.io/nakmuaycoder-r-d-lab/posts/project-chiang-m-ai/10-nutrition-weight-management-and-rice-plan/) | - | Rice Math, TrainingPeaks Day Notes, SMS Notifier |
 | **Ep. 5** | [Full Auto Mode (Wellness-Based Adaptation)](https://nakmuaycoder.github.io/nakmuaycoder-r-d-lab/posts/project-chiang-m-ai/05-wellness-based-adaptation/) | `episode-5-v1.1.0` | Modular Brains, LLM Adaptation, Testing |
 | **Ep. 4** | [The Zero-UI Warehouse](https://nakmuaycoder.github.io/nakmuaycoder-r-d-lab/posts/project-chiang-m-ai/04-the-automation-warehouse/) | `episode-4 v1.0.0` | Google Calendar API + Intervals.icu Sync |
 
@@ -216,6 +218,8 @@ python -m project_chiang_m_ai sync --help
 ```
 
 ## 🍚 Daily Nutrition Plan & Free Mobile SMS Notifier
+
+> 📖 **Deep Dive Article:** Read [Episode 10: Taming the Weight Anomaly: Automated Nutrition Engine, Hom Mali Rice Math, and Dual-Language SMS Alerts](https://nakmuaycoder.github.io/nakmuaycoder-r-d-lab/posts/project-chiang-m-ai/10-nutrition-weight-management-and-rice-plan/) for full details on the architecture and biomechanical rationale.
 
 Automated daily nutrition calculation (Cooked Hom Mali Jasmine Rice, 16h Banana snack, Oats, and intra-workout carbs) with Free Mobile SMS delivery and TrainingPeaks Day Notes sync.
 
