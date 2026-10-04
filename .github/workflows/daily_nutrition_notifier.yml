@@ -29,7 +29,7 @@ jobs:
           FREE_MOBILE_RECIPIENTS: ${{ secrets.FREE_MOBILE_RECIPIENTS }}
           FREE_MOBILE_USER: ${{ secrets.FREE_MOBILE_USER }}
           FREE_MOBILE_PASS: ${{ secrets.FREE_MOBILE_PASS }}
+          TP_AUTH_COOKIE: ${{ secrets.TP_AUTH_COOKIE || secrets.TRAININGPEAKS_COOKIE }}
           TRAININGPEAKS_COOKIE: ${{ secrets.TRAININGPEAKS_COOKIE }}
-          TRAININGPEAKS_ATHLETE_ID: ${{ secrets.TRAININGPEAKS_ATHLETE_ID }}
           SMS_LANG: ${{ secrets.SMS_LANG || vars.SMS_LANG || 'fr' }}
         run: uv run python scripts/notify_daily_rice.py
