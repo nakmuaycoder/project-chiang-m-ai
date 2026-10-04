@@ -10,7 +10,6 @@ and sends multi-recipient SMS notifications in their respective requested langua
 import argparse
 import json
 import os
-import re
 import sys
 from datetime import datetime, timedelta, timezone
 
@@ -31,46 +30,10 @@ from project_chiang_m_ai.nutrition import (  # noqa: E402
     calculate_rice_plan,
     format_rice_plan_message,
     parse_rice_note_text,
+    sanitize_for_free_mobile_sms,
 )
 
 FREE_MOBILE_API_URL = "https://smsapi.free-mobile.fr/sendmsg"
-
-
-def sanitize_for_free_mobile_sms(text: str) -> str:
-    """Strips Emojis and converts characters for Free Mobile SMS API."""
-    replacements = {
-        "🍚": "[RIZ]",
-        "🎯": "[PLAN]",
-        "🌅": "[Matin]",
-        "⚡": "[Effort]",
-        "☀️": "[Midi]",
-        "🍌": "[16h]",
-        "🍎": "[16h]",
-        "🌙": "[Soir]",
-        "⚖️": "[Total]",
-        "⚖": "[Total]",
-        "🛋️": "[Repos]",
-        "🛋": "[Repos]",
-        "🏃": "[Courir]",
-        "⛰️": "[Trail]",
-        "⛰": "[Trail]",
-        "💣": "[Volume]",
-        "👑": "[Peak]",
-        "📱": "",
-        "🔑": "",
-        "⚠️": "",
-        "️": "",  # variation selector-16
-    }
-    for emoji, replacement in replacements.items():
-        text = text.replace(emoji, replacement)
-
-    # Replace double newlines with single newline for Free Mobile API stability
-    while "\n\n" in text:
-        text = text.replace("\n\n", "\n")
-
-    # Remove any remaining 4-byte unicode / emoji characters
-    text = re.sub(r"[\U00010000-\U0010ffff]", "", text)
-    return text
 
 
 def send_free_mobile_sms(user: str, pass_key: str, message: str) -> bool:

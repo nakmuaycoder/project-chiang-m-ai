@@ -2,8 +2,8 @@
 Module: project_chiang_m_ai.nutrition
 
 Daily carbohydrate calculation, BMR baseline customization, intra-workout fueling,
-Hom Mali Jasmine Rice (Rice Cooker ratio), and multi-language formatting (FR, EN, TH)
-for Chiang Mai 160k.
+Hom Mali Jasmine Rice (Rice Cooker ratio), multi-language formatting (FR, EN, TH),
+and Free Mobile SMS sanitization for Chiang Mai 160k.
 """
 
 import os
@@ -96,6 +96,43 @@ NUTRITION_TRANSLATIONS = {
         },
     },
 }
+
+
+def sanitize_for_free_mobile_sms(text: str) -> str:
+    """Strips Emojis and converts characters for Free Mobile SMS API."""
+    replacements = {
+        "🍚": "[RIZ]",
+        "🎯": "[PLAN]",
+        "🌅": "[Matin]",
+        "⚡": "[Effort]",
+        "☀️": "[Midi]",
+        "🍌": "[16h]",
+        "🍎": "[16h]",
+        "🌙": "[Soir]",
+        "⚖️": "[Total]",
+        "⚖": "[Total]",
+        "🛋️": "[Repos]",
+        "🛋": "[Repos]",
+        "🏃": "[Courir]",
+        "⛰️": "[Trail]",
+        "⛰": "[Trail]",
+        "💣": "[Volume]",
+        "👑": "[Peak]",
+        "📱": "",
+        "🔑": "",
+        "⚠️": "",
+        "️": "",  # variation selector-16
+    }
+    for emoji, replacement in replacements.items():
+        text = text.replace(emoji, replacement)
+
+    # Replace double newlines with single newline for Free Mobile API stability
+    while "\n\n" in text:
+        text = text.replace("\n\n", "\n")
+
+    # Remove any remaining 4-byte unicode / emoji characters
+    text = re.sub(r"[\U00010000-\U0010ffff]", "", text)
+    return text
 
 
 def calculate_rice_plan(
@@ -205,15 +242,40 @@ def calculate_rice_plan(
 
 
 def parse_rice_note_text(raw_text: str, day_str: str) -> dict:
-    """Extract numerical plan values from an existing TP note description."""
-    oats_match = re.search(r"Petit-déjeuner\s*:\s*(\d+)g", raw_text)
-    intra_match = re.search(r"Pendant l'effort\s*:\s*(\d+)g", raw_text)
-    midi_match = re.search(r"Déjeuner.*:\s*(\d+)g", raw_text)
-    diner_match = re.search(r"Dîner.*:\s*(\d+)g", raw_text)
+    """Extract numerical plan values from TP note description (FR, EN, TH)."""
+    oats_match = re.search(
+        r"(?:Petit-déjeuner|Breakfast|มื้อเช้า)\s*:\s*(?:ข้าวโอ๊ต\s*)?(\d+)g",
+        raw_text,
+        re.IGNORECASE,
+    )
+    intra_match = re.search(
+        r"(?:Pendant l'effort|During Workout|ระหว่างออกกำลังกาย)"
+        r"\s*:\s*(?:คาร์บ\s*)?(\d+)g",
+        raw_text,
+        re.IGNORECASE,
+    )
+    midi_match = re.search(
+        r"(?<![a-zA-Z-])(?:Déjeuner|Lunch|มื้อเที่ยง)[^:\n]*:?\s*[^\d\n]*(\d+)g",
+        raw_text,
+        re.IGNORECASE,
+    )
+    diner_match = re.search(
+        r"(?:Dîner|Dinner|มื้อเย็น)[^:\n]*:?\s*[^\d\n]*(\d+)g",
+        raw_text,
+        re.IGNORECASE,
+    )
 
-    dur_match = re.search(r"Durée:\s*([\d\.]+)h", raw_text)
-    tss_match = re.search(r"TSS:\s*([\d\.]+)", raw_text)
-    dplus_match = re.search(r"D\+:\s*(\d+)m", raw_text)
+    dur_match = re.search(
+        r"(?:Durée|Duration|ระยะเวลา)\s*:\s*([\d\.]+)h?",
+        raw_text,
+        re.IGNORECASE,
+    )
+    tss_match = re.search(r"TSS\s*:\s*([\d\.]+)", raw_text, re.IGNORECASE)
+    dplus_match = re.search(
+        r"(?:D\+|Elevation|ความชัน)\s*:\s*(\d+)m?",
+        raw_text,
+        re.IGNORECASE,
+    )
 
     oats = int(oats_match.group(1)) if oats_match else 60
     intra = int(intra_match.group(1)) if intra_match else 0
@@ -225,13 +287,13 @@ def parse_rice_note_text(raw_text: str, day_str: str) -> dict:
     dplus = int(dplus_match.group(1)) if dplus_match else 0
 
     cat_key = "rest"
-    if "Léger" in raw_text or "Maintenance" in raw_text or "Light" in raw_text:
+    if any(k in raw_text for k in ["Léger", "Maintenance", "Light", "เบา"]):
         cat_key = "light"
-    elif "Modérée" in raw_text or "Moderate" in raw_text or "Figuerolles" in raw_text:
+    elif any(k in raw_text for k in ["Modérée", "Moderate", "Figuerolles", "ปานกลาง"]):
         cat_key = "moderate"
-    elif "Volume" in raw_text or "Gros" in raw_text or "High" in raw_text:
+    elif any(k in raw_text for k in ["Volume", "Gros", "High", "ปริมาณมาก"]):
         cat_key = "high"
-    elif "PEAK" in raw_text or "Ultra" in raw_text:
+    elif any(k in raw_text for k in ["PEAK", "Ultra", "พีค"]):
         cat_key = "peak"
 
     tot_cuit = midi + diner
@@ -323,36 +385,6 @@ def format_rice_plan_message(
     full_text = "\n".join(lines)
 
     if for_sms:
-        # Inline emoji sanitizer for Free Mobile SMS API
-        replacements = {
-            "🍚": "[RIZ]",
-            "🎯": "[PLAN]",
-            "🌅": "[Matin]",
-            "⚡": "[Effort]",
-            "☀️": "[Midi]",
-            "🍌": "[16h]",
-            "🍎": "[16h]",
-            "🌙": "[Soir]",
-            "⚖️": "[Total]",
-            "⚖": "[Total]",
-            "🛋️": "[Repos]",
-            "🛋": "[Repos]",
-            "🏃": "[Courir]",
-            "⛰️": "[Trail]",
-            "⛰": "[Trail]",
-            "💣": "[Volume]",
-            "👑": "[Peak]",
-            "📱": "",
-            "🔑": "",
-            "⚠️": "",
-            "️": "",
-        }
-        for emoji, replacement in replacements.items():
-            full_text = full_text.replace(emoji, replacement)
-
-        while "\n\n" in full_text:
-            full_text = full_text.replace("\n\n", "\n")
-
-        full_text = re.sub(r"[\U00010000-\U0010ffff]", "", full_text)
+        full_text = sanitize_for_free_mobile_sms(full_text)
 
     return title, full_text
