@@ -191,7 +191,7 @@ python -m project_chiang_m_ai clean --clear-db
 
 **Fetch and export TrainingPeaks workouts and daily health metrics to CSV files:**
 ```bash
-python -m project_chiang_m_ai tp-fetch --start YYYY-MM-DD --end YYYY-MM-DD
+uv run python -m project_chiang_m_ai tp-fetch --start 2026-01-01 --end 2026-07-25
 ```
 
 **Options:**
@@ -214,6 +214,81 @@ python -m project_chiang_m_ai --help
 # Command-specific help
 python -m project_chiang_m_ai sync --help
 ```
+
+## 🍚 Daily Nutrition Plan & Free Mobile SMS Notifier
+
+Automated daily nutrition calculation (Cooked Hom Mali Jasmine Rice, 16h Banana snack, Oats, and intra-workout carbs) with Free Mobile SMS delivery and TrainingPeaks Day Notes sync.
+
+### 1. Setup & Credentials
+
+You can set credentials in `.env` or pass them directly via command-line arguments:
+
+#### Option A: Local `.env` file (Multi-Recipient or Single User)
+```env
+# Multi-recipient mode (Free Mobile credentials and language per user):
+FREE_MOBILE_RECIPIENTS="USER1_ID:PASS1:fr,USER2_ID:PASS2:th"
+
+# Or single user mode:
+FREE_MOBILE_USER="YOUR_FREE_MOBILE_USER"
+FREE_MOBILE_PASS="your_free_mobile_pass_key"
+SMS_LANG="fr"  # fr (French), en (English), th (Thai)
+
+TRAININGPEAKS_COOKIE="your_tp_auth_cookie"
+TRAININGPEAKS_ATHLETE_ID="your_tp_athlete_id"
+```
+
+#### Option B: Pass Multi-Recipient Secrets directly via CLI
+Pass multiple recipients directly as CLI arguments (pings TrainingPeaks only once):
+```bash
+uv run python scripts/notify_daily_rice.py -r "USER1_ID:PASS1:fr" -r "USER2_ID:PASS2:th" --date 2026-10-06
+```
+
+#### Option C: Set Secrets on GitHub via `gh` CLI
+Set GitHub Repository Secrets directly from your terminal using the GitHub CLI (`gh`):
+```bash
+# Multi-recipient secret:
+gh secret set FREE_MOBILE_RECIPIENTS --body "USER1_ID:PASS1:fr,USER2_ID:PASS2:th"
+
+# TrainingPeaks credentials:
+gh secret set TRAININGPEAKS_COOKIE --body "your_tp_auth_cookie"
+gh secret set TRAININGPEAKS_ATHLETE_ID --body "your_tp_athlete_id"
+```
+
+---
+
+### 2. Activating & Disabling SMS Notifications
+
+#### A. Command Line (CLI)
+- **Dry-run mode (print without sending SMS):**
+  ```bash
+  uv run python scripts/notify_daily_rice.py --dry-run
+  ```
+- **Disable SMS via Environment Variable:**
+  ```bash
+  SMS_DISABLED=true uv run python scripts/notify_daily_rice.py
+  ```
+- **Enable & Send SMS:**
+  ```bash
+  uv run python scripts/notify_daily_rice.py --date 2026-10-06 --lang fr
+  ```
+
+#### B. GitHub Actions
+- **Enable / Disable Automated Daily Cron (20:00 CEST / 18:00 UTC):**
+  - To **Disable**: Go to **GitHub Repository** -> **Actions** -> **Daily Rice Nutrition SMS Notifier** -> Click `...` -> **Disable workflow**.
+  - To **Enable**: Click **Enable workflow**.
+  - To **Trigger Manually**: Click **Run workflow** (`workflow_dispatch`).
+
+---
+
+### 3. Generate Calendar Day Notes on TrainingPeaks
+
+Regenerate all 65 Day Notes on your TrainingPeaks calendar through the Chiang Mai 160k race:
+```bash
+uv run python scripts/generate_all_rice_notes.py
+```
+
+---
+
 
 ## 🔄 Workflow
 

@@ -312,3 +312,65 @@ def test_get_workouts_analysis_invalid_type(
     # Should still return the workout, even if analysis elements are skipped
     assert len(workouts) == 1
     assert workouts[0]["Title"] == "Running"
+
+
+@patch("project_chiang_m_ai.clients.trainingpeaks.requests.post")
+@patch.object(TrainingPeaksClient, "_get_access_token", return_value="mock-token")
+@patch.object(TrainingPeaksClient, "_get_athlete_id", return_value=12345)
+def test_add_day_note(mock_get_athlete_id, mock_get_access_token, mock_post):
+    """Test creating a Day Note posts correct familyId=0 and typeValueId=100 payload."""
+    mock_r = MagicMock()
+    mock_r.status_code = 200
+    mock_r.json.return_value = {"workoutId": 998877}
+    mock_post.return_value = mock_r
+
+    client = TrainingPeaksClient()
+    res = client.add_day_note("2026-02-02", "Hom Mali Rice Plan", "Oats: 60g")
+
+    assert res["success"] is True
+    assert res["note_id"] == 998877
+
+    mock_post.assert_called_once()
+    _, kwargs = mock_post.call_args
+    payload = kwargs["json"]
+
+    assert payload["athleteId"] == 12345
+    assert payload["workoutDay"] == "2026-02-02T00:00:00"
+    assert payload["title"] == "Hom Mali Rice Plan"
+    assert payload["description"] == "Oats: 60g"
+    assert payload["workoutTypeFamilyId"] == 0
+    assert payload["workoutTypeValueId"] == 100
+
+
+@patch("project_chiang_m_ai.clients.trainingpeaks.requests.get")
+@patch.object(TrainingPeaksClient, "_get_access_token", return_value="mock-token")
+@patch.object(TrainingPeaksClient, "_get_athlete_id", return_value=12345)
+def test_get_day_notes(mock_get_athlete_id, mock_get_access_token, mock_get):
+    """Test fetching Day Notes filters workouts with workoutTypeValueId == 100."""
+    mock_r = MagicMock()
+    mock_r.status_code = 200
+    mock_r.json.return_value = [
+        {
+            "workoutId": 111,
+            "workoutDay": "2026-02-02T00:00:00",
+            "title": "Running Workout",
+            "workoutTypeValueId": 3,  # Run, not note
+        },
+        {
+            "workoutId": 222,
+            "workoutDay": "2026-02-02T00:00:00",
+            "title": "Hom Mali Rice Plan",
+            "description": "Lunch: 150g",
+            "workoutTypeValueId": 100,  # Note
+            "workoutComments": [],
+        },
+    ]
+    mock_get.return_value = mock_r
+
+    client = TrainingPeaksClient()
+    notes = client.get_day_notes("2026-02-02", "2026-02-02")
+
+    assert len(notes) == 1
+    assert notes[0]["note_id"] == 222
+    assert notes[0]["title"] == "Hom Mali Rice Plan"
+    assert notes[0]["description"] == "Lunch: 150g"
