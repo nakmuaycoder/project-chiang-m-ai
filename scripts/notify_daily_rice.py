@@ -14,12 +14,17 @@ import sys
 from datetime import datetime, timedelta, timezone
 
 import requests
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Ensure src is on python path
 sys.path.insert(0, "src")
 
-from project_chiang_m_ai.clients.trainingpeaks import TrainingPeaksClient
-from project_chiang_m_ai.logger import logger
+from project_chiang_m_ai.clients.trainingpeaks import (  # noqa: E402
+    TrainingPeaksClient,
+)
+from project_chiang_m_ai.logger import logger  # noqa: E402
 
 FREE_MOBILE_API_URL = "https://smsapi.free-mobile.fr/sendmsg"
 

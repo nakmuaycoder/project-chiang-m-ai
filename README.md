@@ -191,7 +191,7 @@ python -m project_chiang_m_ai clean --clear-db
 
 **Fetch and export TrainingPeaks workouts and daily health metrics to CSV files:**
 ```bash
-python -m project_chiang_m_ai tp-fetch --start YYYY-MM-DD --end YYYY-MM-DD
+uv run python -m project_chiang_m_ai tp-fetch --start 2026-01-01 --end 2026-07-25
 ```
 
 **Options:**
