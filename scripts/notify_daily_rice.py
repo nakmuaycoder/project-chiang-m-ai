@@ -3,11 +3,13 @@ Script: notify_daily_rice.py
 
 Fetches the TrainingPeaks Day Note for a target date (default: tomorrow),
 parses the cooked rice quantities (Matin, Midi, 16h, Dîner),
+strips/replaces emojis for Free Mobile SMS compatibility,
 and sends an SMS notification via the Free Mobile SMS API.
 """
 
 import argparse
 import os
+import re
 import sys
 from datetime import datetime, timedelta, timezone
 
@@ -22,13 +24,45 @@ from project_chiang_m_ai.logger import logger
 FREE_MOBILE_API_URL = "https://smsapi.free-mobile.fr/sendmsg"
 
 
+def sanitize_for_free_mobile_sms(text: str) -> str:
+    """Strips Emojis and converts characters for Free Mobile SMS API."""
+    replacements = {
+        "🍚": "[RIZ]",
+        "🎯": "[PLAN]",
+        "🌅": "[Matin]",
+        "☀️": "[Midi]",
+        "🍎": "[16h]",
+        "🌙": "[Soir]",
+        "⚖️": "[Total]",
+        "⚖": "[Total]",
+        "🛋️": "[Repos]",
+        "🛋": "[Repos]",
+        "🏃": "[Courir]",
+        "⛰️": "[Trail]",
+        "⛰": "[Trail]",
+        "💣": "[Volume]",
+        "👑": "[Peak]",
+        "📱": "",
+        "🔑": "",
+        "⚠️": "",
+        "️": "",  # variation selector-16
+    }
+    for emoji, replacement in replacements.items():
+        text = text.replace(emoji, replacement)
+
+    # Remove any remaining 4-byte unicode / emoji characters
+    text = re.sub(r"[\U00010000-\U0010ffff]", "", text)
+    return text
+
+
 def send_free_mobile_sms(user: str, pass_key: str, message: str) -> bool:
     """Sends SMS via Free Mobile SMS API."""
+    clean_msg = sanitize_for_free_mobile_sms(message)
     try:
         params = {
             "user": user,
             "pass": pass_key,
-            "msg": message,
+            "msg": clean_msg,
         }
         res = requests.get(FREE_MOBILE_API_URL, params=params, timeout=15)
         if res.status_code == 200:
@@ -75,17 +109,23 @@ def main():
         rice_note = notes[0]
 
     if not rice_note:
-        msg = (
-            f"🍚 Plan Riz ({target_date}) : "
-            "Aucune note trouvée sur TrainingPeaks pour demain."
+        raw_msg = (
+            f"Plan Riz ({target_date}) : "
+            "Aucune note trouvee sur TrainingPeaks pour demain."
         )
     else:
         title = rice_note.get("title", "")
         desc = rice_note.get("description", "")
-        msg = f"📱 [Riz {target_date}]\n{title}\n\n{desc}"
+        raw_msg = f"[Riz {target_date}]\n{title}\n\n{desc}"
+
+    clean_msg = sanitize_for_free_mobile_sms(raw_msg)
 
     print("========================================")
-    print(msg)
+    print("RAW MSG:")
+    print(raw_msg)
+    print("----------------------------------------")
+    print("CLEAN SMS MSG FOR FREE MOBILE:")
+    print(clean_msg)
     print("========================================")
 
     user = os.getenv("FREE_MOBILE_USER")
@@ -93,7 +133,7 @@ def main():
 
     if user and pass_key:
         logger.info("🔑 Free Mobile credentials found. Sending SMS...")
-        success = send_free_mobile_sms(user, pass_key, msg)
+        success = send_free_mobile_sms(user, pass_key, raw_msg)
         if success:
             sys.exit(0)
         else:
