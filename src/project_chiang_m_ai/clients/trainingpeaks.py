@@ -7,7 +7,7 @@ cookie-to-token exchange and workout management.
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, Optional
 
 import requests
 from dateutil import parser
@@ -381,7 +381,6 @@ class TrainingPeaksClient(ISportPlatform):
         Returns:
             List of workout dictionaries formatted for CSV export
         """
-        import time
 
         token = self._get_access_token()
         athlete_id = self._get_athlete_id()
@@ -527,8 +526,8 @@ class TrainingPeaksClient(ISportPlatform):
 
                 # Retrieve analysis if workout is completed and has duration/details
                 total_time = w.get("totalTime")
-                if total_time and total_time > 0:
-                    time.sleep(0.15)  # Rate limiting throttle
+                # Skip analysis endpoint since it is deprecated/defunct and returns 404
+                if False and total_time and total_time > 0:
                     analysis_url = (
                         "https://api.peakswaresb.com/workout-analysis/v1/analyze"
                     )
@@ -787,4 +786,110 @@ class TrainingPeaksClient(ISportPlatform):
             return records
         except Exception as e:
             logger.error(f"❌ TP get_metrics Error: {e}")
+            return []
+
+    def add_day_note(
+        self,
+        date_str: str,
+        title: str,
+        description: str = "",
+    ) -> dict:
+        """
+        Creates a Day Note on the TrainingPeaks calendar for a specific date.
+
+        Args:
+            date_str: Date in YYYY-MM-DD format.
+            title: Title of the note.
+            description: Detailed content / text of the note.
+
+        Returns:
+            dict with 'success', 'note_id', or 'error'.
+        """
+        token = self._get_access_token()
+        athlete_id = self._get_athlete_id()
+        url = f"{BASE_URL}/fitness/v6/athletes/{athlete_id}/workouts"
+
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        }
+
+        payload = {
+            "athleteId": athlete_id,
+            "workoutDay": date_str if "T" in date_str else f"{date_str}T00:00:00",
+            "title": title,
+            "description": description,
+            "workoutTypeFamilyId": 0,
+            "workoutTypeValueId": 100,
+        }
+
+        try:
+            logger.info(f"📝 Creating TP Day Note: '{title}' on {date_str}")
+            response = requests.post(
+                url, headers=headers, json=payload, timeout=settings.API_TIMEOUT
+            )
+            response.raise_for_status()
+            data = response.json()
+            note_id = data.get("workoutId")
+            logger.info(f"✅ TP Day Note Created! ID: {note_id}")
+            return {"success": True, "note_id": note_id, "data": data}
+        except Exception as e:
+            logger.error(f"❌ TP add_day_note Error: {e}")
+            return {"success": False, "note_id": None, "error": str(e)}
+
+    def get_day_notes(
+        self,
+        start_date: str,
+        end_date: Optional[str] = None,
+    ) -> list[dict]:
+        """
+        Fetches Day Notes from TrainingPeaks for a specific date or date range.
+
+        Args:
+            start_date: Start date in YYYY-MM-DD format.
+            end_date: End date in YYYY-MM-DD format. Defaults to start_date if omitted.
+
+        Returns:
+            List of note dictionaries with note_id, date, title,
+            description, and comments.
+        """
+        if end_date is None:
+            end_date = start_date
+
+        token = self._get_access_token()
+        athlete_id = self._get_athlete_id()
+        url = (
+            f"{BASE_URL}/fitness/v6/athletes/{athlete_id}/"
+            f"workouts/{start_date}/{end_date}"
+        )
+
+        headers = {"Authorization": f"Bearer {token}"}
+
+        try:
+            logger.info(f"🔍 Fetching TP Day Notes from {start_date} to {end_date}...")
+            response = requests.get(url, headers=headers, timeout=settings.API_TIMEOUT)
+            response.raise_for_status()
+            items = response.json()
+
+            notes = []
+            for item in items:
+                if not isinstance(item, dict):
+                    continue
+                # Day Notes in TP have workoutTypeValueId == 100
+                if item.get("workoutTypeValueId") == 100:
+                    notes.append(
+                        {
+                            "note_id": item.get("workoutId"),
+                            "date": item.get("workoutDay", "")[:10],
+                            "title": item.get("title", ""),
+                            "description": item.get("description", ""),
+                            "comments": item.get("workoutComments", []),
+                            "raw_data": item,
+                        }
+                    )
+
+            logger.info(f"✅ Found {len(notes)} Day Note(s)")
+            return notes
+        except Exception as e:
+            logger.error(f"❌ TP get_day_notes Error: {e}")
             return []
