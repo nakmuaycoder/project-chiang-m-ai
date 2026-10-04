@@ -171,8 +171,14 @@ def main():
     # --- PING TRAININGPEAKS EXACTLY ONCE ---
     logger.info(f"🔍 Fetching Day Note for target date: {target_date} (1 TP Ping)")
 
-    client = TrainingPeaksClient()
-    notes = client.get_day_notes(target_date)
+    notes = []
+    try:
+        client = TrainingPeaksClient()
+        notes = client.get_day_notes(target_date)
+    except Exception as e:
+        logger.warning(
+            f"⚠️ TrainingPeaks fetch skipped ({e}). Falling back to BMR calculation."
+        )
 
     rice_note = None
     for n in notes:
