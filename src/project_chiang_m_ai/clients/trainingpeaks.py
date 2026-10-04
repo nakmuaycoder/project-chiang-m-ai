@@ -526,8 +526,7 @@ class TrainingPeaksClient(ISportPlatform):
 
                 # Retrieve analysis if workout is completed and has duration/details
                 total_time = w.get("totalTime")
-                # Skip analysis endpoint since it is deprecated/defunct and returns 404
-                if False and total_time and total_time > 0:
+                if total_time and total_time > 0:
                     analysis_url = (
                         "https://api.peakswaresb.com/workout-analysis/v1/analyze"
                     )
