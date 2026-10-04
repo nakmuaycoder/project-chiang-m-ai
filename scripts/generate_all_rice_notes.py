@@ -2,14 +2,8 @@
 Script: generate_all_rice_notes.py
 
 Generates and posts Day Notes on TrainingPeaks for all days in the plan
-specifying exact Cooked Rice (Riz Cuit) quantities in grams for:
-- Petit-déjeuner (Breakfast)
-- Déjeuner (Midi)
-- Collation 16h (Afternoon Snack)
-- Dîner (Evening Meal)
-
-Calculated based on athlete weight (~91kg), workout timing,
-duration, elevation gain (D+), and TSS planned.
+specifying exact Cooked Rice (Riz Cuit) quantities for Midi, 16h, and Dîner,
+and Rolled Oats (Flocons d'Avoine) for Petit-déjeuner.
 """
 
 import sys
@@ -36,10 +30,11 @@ def calculate_rice_plan(day_str: str, workouts: list[dict]) -> dict:
         w.get("elevationGainPlanned") or w.get("elevationGain") or 0 for w in workouts
     )
 
-    # Base rice targets in grams of COOKED RICE (Riz Cuit) for ~91kg athlete
+    # Base targets: 60g oats for breakfast, rice cuit for lunch/snack/dinner
+    oats_breakfast = 60  # ~40g net carbs
+
     if total_dur == 0 or total_tss == 0:
         # --- REST DAY ---
-        breakfast = 60
         midi = 120
         snack = 0
         diner = 120
@@ -47,12 +42,11 @@ def calculate_rice_plan(day_str: str, workouts: list[dict]) -> dict:
     elif total_dur <= 1.25 and total_tss < 75:
         # --- LIGHT WORKOUT DAY ---
         if is_weekend:
-            breakfast = 80
+            oats_breakfast = 70
             midi = 240
             snack = 0
             diner = 150
         else:
-            breakfast = 60
             midi = 180
             snack = 80
             diner = 220
@@ -60,12 +54,11 @@ def calculate_rice_plan(day_str: str, workouts: list[dict]) -> dict:
     elif total_dur <= 2.5 or (total_tss < 160 and total_dplus < 1000):
         # --- MODERATE WORKOUT DAY ---
         if is_weekend:
-            breakfast = 100
+            oats_breakfast = 80
             midi = 350
             snack = 80
             diner = 180
         else:
-            breakfast = 80
             midi = 220
             snack = 120
             diner = 320
@@ -73,12 +66,11 @@ def calculate_rice_plan(day_str: str, workouts: list[dict]) -> dict:
     elif total_dur <= 4.0 or (total_tss < 260 and total_dplus < 1800):
         # --- HIGH VOLUME DAY ---
         if is_weekend:
-            breakfast = 120
+            oats_breakfast = 90
             midi = 480
             snack = 100
             diner = 220
         else:
-            breakfast = 90
             midi = 280
             snack = 150
             diner = 450
@@ -86,29 +78,28 @@ def calculate_rice_plan(day_str: str, workouts: list[dict]) -> dict:
     else:
         # --- PEAK / ULTRA DAY (5h+ or 1800m+ D+) ---
         if is_weekend:
-            breakfast = 150
+            oats_breakfast = 100
             midi = 650
             snack = 150
             diner = 300
         else:
-            breakfast = 100
             midi = 350
             snack = 200
             diner = 600
         category = "👑 PEAK 100-MILES / Ultra"
 
-    total_rice_cuit = breakfast + midi + snack + diner
+    total_rice_cuit = midi + snack + diner
     total_rice_cru = int(total_rice_cuit / 3.0)
 
     return {
         "day": day_str,
         "category": category,
-        "breakfast": breakfast,
+        "oats_breakfast": oats_breakfast,
         "midi": midi,
         "snack": snack,
         "diner": diner,
-        "total_cuit": total_rice_cuit,
-        "total_cru": total_rice_cru,
+        "total_rice_cuit": total_rice_cuit,
+        "total_rice_cru": total_rice_cru,
         "total_dur": round(total_dur, 2),
         "total_tss": round(total_tss, 1),
         "total_dplus": int(total_dplus),
@@ -126,9 +117,8 @@ def main():
 
     print(f"📅 Fetching calendar workouts from {start_date} to {end_date}...")
     tp_base = "https://tpapi.trainingpeaks.com"
-    url_w = (
-        f"{tp_base}/fitness/v6/athletes/{athlete_id}/workouts/{start_date}/{end_date}"
-    )
+    endpoint = f"/fitness/v6/athletes/{athlete_id}/workouts/{start_date}/{end_date}"
+    url_w = f"{tp_base}{endpoint}"
     res = requests.get(url_w, headers=headers, timeout=15)
     res.raise_for_status()
     all_items = res.json()
@@ -156,33 +146,33 @@ def main():
         w_list = workouts_by_day.get(day_str, [])
         plan = calculate_rice_plan(day_str, w_list)
 
-        title = f"🍚 Plan Riz Cuit : {plan['total_cuit']}g ({plan['category']})"
+        title = f"🍚 Plan Repas & Riz : {plan['total_rice_cuit']}g ({plan['category']})"
 
         dur_str = f"Durée: {plan['total_dur']}h"
         tss_str = f"TSS: {plan['total_tss']}"
         dplus_str = f"D+: {plan['total_dplus']}m"
 
         desc_lines = [
-            f"🎯 PLAN NUTRITION RIZ CUIT - {day_str}",
+            f"🎯 PLAN NUTRITION DU JOUR - {day_str}",
             f"Catégorie : {plan['category']} ({dur_str} | {tss_str} | {dplus_str})",
             "",
-            "🍚 QUANTITÉS EN GRAMMES DE RIZ CUIT (dans l'assiette) :",
-            f"- 🌅 Petit-déjeuner : {plan['breakfast']}g (riz cuit / crème de riz)",
-            f"- ☀️ Déjeuner (Midi) : {plan['midi']}g",
+            "📋 RÉPARTITION DES REPAS DU JOUR :",
+            f"- 🌅 Petit-déjeuner : {plan['oats_breakfast']}g Flocons d'Avoine",
+            f"- ☀️ Déjeuner (Midi) : {plan['midi']}g Riz Cuit",
         ]
         if plan["snack"] > 0:
-            snack_txt = f"- 🍎 Collation 16h  : {plan['snack']}g"
+            snack_txt = f"- 🍎 Collation 16h  : {plan['snack']}g Riz Cuit / Compote"
             desc_lines.append(snack_txt)
         else:
             desc_lines.append("- 🍎 Collation 16h  : Repos (0g)")
 
-        tot_cuit = plan["total_cuit"]
-        tot_cru = plan["total_cru"]
+        tot_cuit = plan["total_rice_cuit"]
+        tot_cru = plan["total_rice_cru"]
         desc_lines.extend(
             [
-                f"- 🌙 Dîner (Soir)    : {plan['diner']}g",
+                f"- 🌙 Dîner (Soir)    : {plan['diner']}g Riz Cuit",
                 "",
-                f"⚖️ TOTAL DU JOUR : {tot_cuit}g Riz Cuit (~{tot_cru}g Riz Sec / Cru)",
+                f"⚖️ TOTAL RIZ CUIT JOUR : {tot_cuit}g Riz Cuit (~{tot_cru}g Riz Sec)",
             ]
         )
 
