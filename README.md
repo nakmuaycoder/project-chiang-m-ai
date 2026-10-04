@@ -223,29 +223,35 @@ Automated daily nutrition calculation (Cooked Hom Mali Jasmine Rice, 16h Banana 
 
 You can set credentials in `.env` or pass them directly via command-line arguments:
 
-#### Option A: Local `.env` file
+#### Option A: Local `.env` file (Multi-Recipient or Single User)
 ```env
+# Multi-recipient mode (Free Mobile credentials and language per user):
+FREE_MOBILE_RECIPIENTS="USER1_ID:PASS1:fr,USER2_ID:PASS2:th"
+
+# Or single user mode:
 FREE_MOBILE_USER="YOUR_FREE_MOBILE_USER"
 FREE_MOBILE_PASS="your_free_mobile_pass_key"
+SMS_LANG="fr"  # fr (French), en (English), th (Thai)
+
 TRAININGPEAKS_COOKIE="your_tp_auth_cookie"
 TRAININGPEAKS_ATHLETE_ID="your_tp_athlete_id"
-SMS_LANG="fr"  # fr (French), en (English), th (Thai)
 ```
 
-#### Option B: Pass Secrets directly via CLI
-You can pass Free Mobile credentials directly as CLI arguments:
+#### Option B: Pass Multi-Recipient Secrets directly via CLI
+Pass multiple recipients directly as CLI arguments (pings TrainingPeaks only once):
 ```bash
-uv run python scripts/notify_daily_rice.py --user "YOUR_FREE_MOBILE_USER" --pass-key "your_free_mobile_pass" --date 2026-10-06 --lang fr
+uv run python scripts/notify_daily_rice.py -r "USER1_ID:PASS1:fr" -r "USER2_ID:PASS2:th" --date 2026-10-06
 ```
 
 #### Option C: Set Secrets on GitHub via `gh` CLI
 Set GitHub Repository Secrets directly from your terminal using the GitHub CLI (`gh`):
 ```bash
-gh secret set FREE_MOBILE_USER --body "YOUR_FREE_MOBILE_USER"
-gh secret set FREE_MOBILE_PASS --body "your_free_mobile_pass_key"
+# Multi-recipient secret:
+gh secret set FREE_MOBILE_RECIPIENTS --body "USER1_ID:PASS1:fr,USER2_ID:PASS2:th"
+
+# TrainingPeaks credentials:
 gh secret set TRAININGPEAKS_COOKIE --body "your_tp_auth_cookie"
 gh secret set TRAININGPEAKS_ATHLETE_ID --body "your_tp_athlete_id"
-gh secret set SMS_LANG --body "fr"
 ```
 
 ---

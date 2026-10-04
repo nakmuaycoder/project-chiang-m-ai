@@ -1,14 +1,14 @@
 """
 Script: notify_daily_rice.py
 
-Fetches the TrainingPeaks Day Note / Workouts for a target date (default: tomorrow),
+Fetches the TrainingPeaks Day Note / Workouts for a target date ONCE,
 calculates/parses the cooked rice quantities (Matin, Midi, 16h, Dîner),
-formats the message in the selected language (fr: Français, en: English, th: Thai),
-strips/replaces emojis for Free Mobile SMS compatibility,
-and sends an SMS notification via the Free Mobile SMS API.
+and sends multi-recipient SMS notifications in their respective requested languages
+(e.g., French for user, Thai for wife) via Free Mobile SMS API.
 """
 
 import argparse
+import json
 import os
 import re
 import sys
@@ -42,7 +42,9 @@ def sanitize_for_free_mobile_sms(text: str) -> str:
         "🍚": "[RIZ]",
         "🎯": "[PLAN]",
         "🌅": "[Matin]",
+        "⚡": "[Effort]",
         "☀️": "[Midi]",
+        "🍌": "[16h]",
         "🍎": "[16h]",
         "🌙": "[Soir]",
         "⚖️": "[Total]",
@@ -78,19 +80,80 @@ def send_free_mobile_sms(user: str, pass_key: str, message: str) -> bool:
         }
         res = requests.get(FREE_MOBILE_API_URL, params=params, timeout=15)
         if res.status_code == 200:
-            logger.info("📱 Free Mobile SMS sent successfully!")
+            logger.info(f"📱 Free Mobile SMS sent successfully to user {user}!")
             return True
         else:
-            logger.error(f"❌ Free Mobile SMS Error HTTP {res.status_code}: {res.text}")
+            logger.error(
+                f"❌ Free Mobile SMS Error HTTP {res.status_code} "
+                f"for user {user}: {res.text}"
+            )
             return False
     except Exception as e:
-        logger.error(f"❌ Free Mobile SMS Exception: {e}")
+        logger.error(f"❌ Free Mobile SMS Exception for user {user}: {e}")
         return False
+
+
+def parse_recipients(args) -> list[dict]:
+    """
+    Parses recipient list from CLI arguments or environment variables.
+    Returns list of dicts: [{'user': '...', 'pass': '...', 'lang': 'fr'}, ...]
+    """
+    recipients = []
+
+    # 1. Check CLI --recipient arguments (format: USER:PASS:LANG or USER:PASS)
+    if args.recipient:
+        for r_str in args.recipient:
+            parts = r_str.split(":")
+            if len(parts) >= 2:
+                u = parts[0].strip()
+                p = parts[1].strip()
+                lang_code = parts[2].strip() if len(parts) >= 3 else "fr"
+                recipients.append({"user": u, "pass": p, "lang": lang_code})
+
+    # 2. Check FREE_MOBILE_RECIPIENTS env var (JSON or USER:PASS:LANG)
+    if not recipients and os.getenv("FREE_MOBILE_RECIPIENTS"):
+        raw_rec = os.getenv("FREE_MOBILE_RECIPIENTS", "").strip()
+        if raw_rec.startswith("["):
+            try:
+                parsed = json.loads(raw_rec)
+                for item in parsed:
+                    if isinstance(item, dict) and item.get("user") and item.get("pass"):
+                        recipients.append(
+                            {
+                                "user": str(item["user"]),
+                                "pass": str(item["pass"]),
+                                "lang": str(item.get("lang", "fr")),
+                            }
+                        )
+            except Exception as e:
+                logger.warning(f"⚠️ Failed to parse FREE_MOBILE_RECIPIENTS JSON: {e}")
+        else:
+            for entry in raw_rec.split(","):
+                parts = entry.strip().split(":")
+                if len(parts) >= 2:
+                    u = parts[0].strip()
+                    p = parts[1].strip()
+                    lang_code = parts[2].strip() if len(parts) >= 3 else "fr"
+                    recipients.append({"user": u, "pass": p, "lang": lang_code})
+
+    # 3. Fallback to single user CLI args or env vars (FREE_MOBILE_USER)
+    if not recipients:
+        u = args.user or os.getenv("FREE_MOBILE_USER")
+        p = (
+            args.pass_key
+            or os.getenv("FREE_MOBILE_PASS")
+            or os.getenv("FREE_MOBILE_KEY")
+        )
+        lang_code = args.lang or os.getenv("SMS_LANG", "fr")
+        if u and p:
+            recipients.append({"user": u, "pass": p, "lang": lang_code})
+
+    return recipients
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Fetch daily rice nutrition plan and send SMS in FR, EN, or TH"
+        description="Fetch daily rice nutrition plan once and send multi-recipient SMS"
     )
     parser.add_argument(
         "--date",
@@ -103,26 +166,32 @@ def main():
         type=str,
         choices=SUPPORTED_LANGUAGES,
         default=os.getenv("SMS_LANG", "fr"),
-        help="SMS language: fr (French), en (English), th (Thai).",
+        help="Default SMS language if single recipient mode used.",
     )
     parser.add_argument(
         "--user",
         "-u",
         type=str,
         default=os.getenv("FREE_MOBILE_USER"),
-        help="Free Mobile API User ID (overrides FREE_MOBILE_USER env var)",
+        help="Free Mobile API User ID for single user mode.",
     )
     parser.add_argument(
         "--pass-key",
         "-p",
         type=str,
         default=os.getenv("FREE_MOBILE_PASS") or os.getenv("FREE_MOBILE_KEY"),
-        help="Free Mobile API Pass Key (overrides FREE_MOBILE_PASS env var)",
+        help="Free Mobile API Pass Key for single user mode.",
+    )
+    parser.add_argument(
+        "--recipient",
+        "-r",
+        action="append",
+        help="Recipient specification in USER:PASS:LANG format (e.g. -r USER:KEY:fr).",
     )
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="Print the formatted SMS without sending via API",
+        help="Print formatted SMS for all recipients without sending via API.",
     )
     args = parser.parse_args()
 
@@ -132,8 +201,8 @@ def main():
         tomorrow_dt = datetime.now(timezone.utc) + timedelta(days=1)
         target_date = tomorrow_dt.strftime("%Y-%m-%d")
 
-    lang = args.lang.lower().strip()
-    logger.info(f"🔍 Fetching Day Note for {target_date} ({lang.upper()})")
+    # --- PING TRAININGPEAKS EXACTLY ONCE ---
+    logger.info(f"🔍 Fetching Day Note for target date: {target_date} (1 TP Ping)")
 
     client = TrainingPeaksClient()
     notes = client.get_day_notes(target_date)
@@ -153,32 +222,43 @@ def main():
     else:
         plan = calculate_rice_plan(target_date, [])
 
-    _, sms_msg = format_rice_plan_message(plan, lang=lang, for_sms=True)
-
-    print("========================================")
-    print(f"SMS MSG (Language: {lang.upper()}):")
-    print(sms_msg)
-    print("========================================")
-
-    if args.dry_run or os.getenv("SMS_DISABLED", "false").lower() == "true":
-        logger.info("ℹ️ Dry-run mode enabled or SMS_DISABLED=true. SMS skipped.")
+    # --- PROCESS RECIPIENTS & SEND SMS ---
+    recipients = parse_recipients(args)
+    if not recipients:
+        logger.warning("⚠️ No Free Mobile recipients configured. SMS skipped.")
         sys.exit(0)
 
-    user = args.user
-    pass_key = args.pass_key
+    logger.info(f"📱 Processing SMS delivery for {len(recipients)} recipient(s)...")
 
-    if user and pass_key:
-        logger.info(
-            f"🔑 Free Mobile credentials found. Sending SMS in {lang.upper()}..."
-        )
-        success = send_free_mobile_sms(user, pass_key, sms_msg)
-        if success:
-            sys.exit(0)
-        else:
-            sys.exit(1)
+    all_success = True
+    for idx, r in enumerate(recipients, 1):
+        r_user = r["user"]
+        r_pass = r["pass"]
+        r_lang = r["lang"].lower().strip()
+
+        _, sms_msg = format_rice_plan_message(plan, lang=r_lang, for_sms=True)
+
+        print("========================================")
+        print(f"RECIPIENT #{idx} (User: {r_user}) - LANGUAGE: {r_lang.upper()}")
+        print("----------------------------------------")
+        print(sms_msg)
+        print("========================================")
+
+        if args.dry_run or os.getenv("SMS_DISABLED", "false").lower() == "true":
+            logger.info(
+                f"ℹ️ Dry-run mode enabled. SMS to {r_user} ({r_lang.upper()}) skipped."
+            )
+            continue
+
+        logger.info(f"🔑 Sending SMS to {r_user} in {r_lang.upper()}...")
+        success = send_free_mobile_sms(r_user, r_pass, sms_msg)
+        if not success:
+            all_success = False
+
+    if all_success:
+        sys.exit(0)
     else:
-        logger.warning("⚠️ FREE_MOBILE_USER or FREE_MOBILE_PASS not set. SMS skipped.")
-        sys.exit(0)
+        sys.exit(1)
 
 
 if __name__ == "__main__":

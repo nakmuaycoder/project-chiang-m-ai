@@ -26,9 +26,10 @@ jobs:
 
       - name: Run Daily Rice Notifier
         env:
+          FREE_MOBILE_RECIPIENTS: ${{ secrets.FREE_MOBILE_RECIPIENTS }}
           FREE_MOBILE_USER: ${{ secrets.FREE_MOBILE_USER }}
           FREE_MOBILE_PASS: ${{ secrets.FREE_MOBILE_PASS }}
           TRAININGPEAKS_COOKIE: ${{ secrets.TRAININGPEAKS_COOKIE }}
           TRAININGPEAKS_ATHLETE_ID: ${{ secrets.TRAININGPEAKS_ATHLETE_ID }}
           SMS_LANG: ${{ secrets.SMS_LANG || vars.SMS_LANG || 'fr' }}
-        run: uv run python scripts/notify_daily_rice.py --lang "${SMS_LANG:-fr}"
+        run: uv run python scripts/notify_daily_rice.py
