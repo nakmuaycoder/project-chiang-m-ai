@@ -2,7 +2,8 @@
 Module: project_chiang_m_ai.nutrition
 
 Daily carbohydrate calculation, intra-workout fueling (Gels & Sports Drink),
-and multi-language formatting (FR, EN, TH) for Chiang Mai 160k.
+Hom Mali Jasmine Rice (Rice Cooker ratio), and multi-language formatting (FR, EN, TH)
+for Chiang Mai 160k.
 """
 
 import re
@@ -10,9 +11,12 @@ from datetime import datetime
 
 SUPPORTED_LANGUAGES = ["fr", "en", "th"]
 
+# Hom Mali Rice Cooker ratio: 1g dry Hom Mali rice yields ~2.35g cooked rice.
+HOM_MALI_RATIO = 2.35
+
 NUTRITION_TRANSLATIONS = {
     "fr": {
-        "title_prefix": "Plan Repas & Riz",
+        "title_prefix": "Plan Repas & Riz Hom Mali",
         "header": "PLAN NUTRITION DU JOUR - {date}",
         "category_label": "Catégorie",
         "duration": "Durée",
@@ -21,12 +25,13 @@ NUTRITION_TRANSLATIONS = {
         "breakfast": "Petit-déjeuner : {oats}g Flocons d'Avoine",
         "intra": "Pendant l'effort : {intra}g Glucides (Boisson d'effort & Gels)",
         "intra_rest": "Pendant l'effort : 0g (Repos)",
-        "lunch": "Déjeuner (Midi) : {midi}g Riz Cuit",
+        "lunch": "Déjeuner (Midi) : {midi}g Riz Hom Mali Cuit",
         "snack": "Collation 16h : 1 Banane (~25g glucides)",
         "snack_rest": "Collation 16h : Repos (0g)",
-        "dinner": "Dîner (Soir) : {diner}g Riz Cuit",
+        "dinner": "Dîner (Soir) : {diner}g Riz Hom Mali Cuit",
         "total": (
-            "TOTAL RIZ CUIT JOUR : {total_cuit}g Riz Cuit (~{total_cru}g Riz Sec)"
+            "TOTAL RIZ HOM MALI JOUR : {total_cuit}g Cuit "
+            "(~{total_cru}g Sec Rice Cooker)"
         ),
         "no_note": "Plan Riz ({date}) : Aucune note trouvée sur TrainingPeaks.",
         "categories": {
@@ -38,7 +43,7 @@ NUTRITION_TRANSLATIONS = {
         },
     },
     "en": {
-        "title_prefix": "Meal & Rice Plan",
+        "title_prefix": "Hom Mali Rice Plan",
         "header": "DAILY NUTRITION PLAN - {date}",
         "category_label": "Category",
         "duration": "Duration",
@@ -47,13 +52,12 @@ NUTRITION_TRANSLATIONS = {
         "breakfast": "Breakfast: {oats}g Rolled Oats",
         "intra": "During Workout: {intra}g Carbs (Sports Drink & Gels)",
         "intra_rest": "During Workout: 0g (Rest)",
-        "lunch": "Lunch: {midi}g Cooked Rice",
+        "lunch": "Lunch: {midi}g Cooked Hom Mali Rice",
         "snack": "Afternoon Snack (4PM): 1 Banana (~25g carbs)",
         "snack_rest": "Afternoon Snack (4PM): Rest (0g)",
-        "dinner": "Dinner: {diner}g Cooked Rice",
+        "dinner": "Dinner: {diner}g Cooked Hom Mali Rice",
         "total": (
-            "TOTAL DAILY COOKED RICE: {total_cuit}g Cooked Rice "
-            "(~{total_cru}g Dry Rice)"
+            "TOTAL HOM MALI RICE: {total_cuit}g Cooked (~{total_cru}g Dry Rice Cooker)"
         ),
         "no_note": "Rice Plan ({date}): No note found on TrainingPeaks.",
         "categories": {
@@ -65,7 +69,7 @@ NUTRITION_TRANSLATIONS = {
         },
     },
     "th": {
-        "title_prefix": "แผนอาหาร & ข้าว",
+        "title_prefix": "แผนข้าวหอมมะลิ",
         "header": "แผนโภชนาการประจำวัน - {date}",
         "category_label": "ประเภท",
         "duration": "ระยะเวลา",
@@ -74,11 +78,13 @@ NUTRITION_TRANSLATIONS = {
         "breakfast": "มื้อเช้า: ข้าวโอ๊ต {oats}g",
         "intra": "ระหว่างออกกำลังกาย: คาร์บ {intra}g (เครื่องดื่มเกลือแร่ & เจล)",
         "intra_rest": "ระหว่างออกกำลังกาย: 0g (พักผ่อน)",
-        "lunch": "มื้อเที่ยง: ข้าวสวย {midi}g",
+        "lunch": "มื้อเที่ยง: ข้าวหอมมะลิสุก {midi}g",
         "snack": "อาหารว่าง (16:00 น.): กล้วย 1 ลูก (~25g คาร์บ)",
         "snack_rest": "อาหารว่าง (16:00 น.): พักผ่อน (0g)",
-        "dinner": "มื้อเย็น: ข้าวสวย {diner}g",
-        "total": "รวมข้าวสวยประจำวัน: {total_cuit}g (~ข้าวสาร {total_cru}g)",
+        "dinner": "มื้อเย็น: ข้าวหอมมะลิสุก {diner}g",
+        "total": (
+            "รวมข้าวหอมมะลิประจำวัน: {total_cuit}g สุก (~ข้าวสาร {total_cru}g หม้อหุงข้าว)"
+        ),
         "no_note": "แผนข้าว ({date}): ไม่พบโน้ตบน TrainingPeaks",
         "categories": {
             "rest": "🛋️ พักผ่อน / ฟื้นฟู",
@@ -92,7 +98,7 @@ NUTRITION_TRANSLATIONS = {
 
 
 def calculate_rice_plan(day_str: str, workouts: list[dict]) -> dict:
-    """Calculates daily rice, oats, intra-workout carbs, and snack targets."""
+    """Calculates daily Hom Mali rice, oats, intra-workout carbs, and snack targets."""
     dt = datetime.strptime(day_str, "%Y-%m-%d")
     is_weekend = dt.weekday() >= 5  # 5=Saturday, 6=Sunday
 
@@ -116,54 +122,54 @@ def calculate_rice_plan(day_str: str, workouts: list[dict]) -> dict:
     elif total_dur <= 1.25 and total_tss < 75:
         # --- LIGHT SESSION ---
         cat_key = "light"
-        intra_carbs = 30  # 1 bidon boisson / 1 gel
+        intra_carbs = 30
         has_snack = True
         if is_weekend:
             oats_breakfast = 70
-            midi = 180
-            diner = 150
+            midi = 160
+            diner = 140
         else:
-            midi = 150
-            diner = 180
+            midi = 140
+            diner = 160
     elif total_dur <= 2.6 or (total_tss < 160 and total_dplus < 1000):
         # --- MODERATE SESSION (e.g. 2h30 Figuerolles) ---
         cat_key = "moderate"
-        intra_carbs = 120  # ~50g/h: 2 bidons + 2 gels
+        intra_carbs = 120
+        has_snack = True
+        if is_weekend:
+            oats_breakfast = 80
+            midi = 180
+            diner = 180
+        else:
+            midi = 180
+            diner = 220
+    elif total_dur <= 4.0 or (total_tss < 260 and total_dplus < 1800):
+        # --- HIGH VOLUME DAY ---
+        cat_key = "high"
+        intra_carbs = 200
         has_snack = True
         if is_weekend:
             oats_breakfast = 80
             midi = 220
             diner = 220
         else:
-            midi = 200
+            midi = 220
             diner = 250
-    elif total_dur <= 4.0 or (total_tss < 260 and total_dplus < 1800):
-        # --- HIGH VOLUME DAY ---
-        cat_key = "high"
-        intra_carbs = 200  # ~50-60g/h: boisson + gels/compotes
-        has_snack = True
-        if is_weekend:
-            oats_breakfast = 80
-            midi = 280
-            diner = 270
-        else:
-            midi = 250
-            diner = 300
     else:
         # --- PEAK / ULTRA DAY (5h+) ---
         cat_key = "peak"
-        intra_carbs = 300  # ~60g/h: boisson + gels + ravito
+        intra_carbs = 300
         has_snack = True
         if is_weekend:
             oats_breakfast = 90
-            midi = 320
-            diner = 330
+            midi = 250
+            diner = 280
         else:
-            midi = 300
-            diner = 350
+            midi = 260
+            diner = 300
 
     total_rice_cuit = midi + diner
-    total_rice_cru = int(total_rice_cuit / 3.0)
+    total_rice_cru = int(total_rice_cuit / HOM_MALI_RATIO)
 
     return {
         "day": day_str,
@@ -212,7 +218,7 @@ def parse_rice_note_text(raw_text: str, day_str: str) -> dict:
         cat_key = "peak"
 
     tot_cuit = midi + diner
-    tot_cru = int(tot_cuit / 3.0)
+    tot_cru = int(tot_cuit / HOM_MALI_RATIO)
 
     return {
         "day": day_str,
