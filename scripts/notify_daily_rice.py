@@ -171,14 +171,14 @@ def main():
     # --- PING TRAININGPEAKS FOR TARGET DATE ---
     logger.info(f"🔍 Fetching Day Note for target date: {target_date}")
 
+    tp_fetch_success = False
     notes = []
     try:
         client = TrainingPeaksClient()
         notes = client.get_day_notes(target_date)
+        tp_fetch_success = True
     except Exception as e:
-        logger.warning(
-            f"⚠️ TrainingPeaks fetch skipped ({e}). Falling back to BMR calculation."
-        )
+        logger.error(f"❌ TrainingPeaks day notes fetch failed: {e}")
 
     rice_note = None
     for n in notes:
@@ -198,8 +198,17 @@ def main():
         try:
             client = TrainingPeaksClient()
             workouts = client.get_workouts(target_date, target_date)
+            tp_fetch_success = True
         except Exception as e:
-            logger.warning(f"⚠️ TrainingPeaks workouts fetch skipped ({e}).")
+            logger.error(f"❌ TrainingPeaks workouts fetch failed: {e}")
+
+        if not tp_fetch_success:
+            logger.error(
+                "❌ TrainingPeaks API fetch failed. "
+                "Please check TP_AUTH_COOKIE / TRAININGPEAKS_COOKIE secret."
+            )
+            sys.exit(1)
+
         plan = calculate_rice_plan(target_date, workouts)
 
     # --- PROCESS RECIPIENTS & SEND SMS ---
