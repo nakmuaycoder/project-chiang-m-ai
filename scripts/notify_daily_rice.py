@@ -11,7 +11,7 @@ import argparse
 import json
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import requests
 from dotenv import load_dotenv
@@ -125,7 +125,7 @@ def main():
     parser.add_argument(
         "--date",
         type=str,
-        help="Target date in YYYY-MM-DD format (default: today)",
+        help="Target date in YYYY-MM-DD format (default: tomorrow)",
     )
     parser.add_argument(
         "--lang",
@@ -165,11 +165,11 @@ def main():
     if args.date:
         target_date = args.date
     else:
-        today_dt = datetime.now(timezone.utc)
-        target_date = today_dt.strftime("%Y-%m-%d")
+        tomorrow_dt = datetime.now(timezone.utc) + timedelta(days=1)
+        target_date = tomorrow_dt.strftime("%Y-%m-%d")
 
-    # --- PING TRAININGPEAKS EXACTLY ONCE ---
-    logger.info(f"🔍 Fetching Day Note for target date: {target_date} (1 TP Ping)")
+    # --- PING TRAININGPEAKS FOR TARGET DATE ---
+    logger.info(f"🔍 Fetching Day Note for target date: {target_date}")
 
     notes = []
     try:
@@ -193,7 +193,14 @@ def main():
     if rice_note and rice_note.get("description"):
         plan = parse_rice_note_text(rice_note.get("description"), target_date)
     else:
-        plan = calculate_rice_plan(target_date, [])
+        logger.info(f"ℹ️ No Day Note found for {target_date}. Fetching workouts...")
+        workouts = []
+        try:
+            client = TrainingPeaksClient()
+            workouts = client.get_workouts(target_date, target_date)
+        except Exception as e:
+            logger.warning(f"⚠️ TrainingPeaks workouts fetch skipped ({e}).")
+        plan = calculate_rice_plan(target_date, workouts)
 
     # --- PROCESS RECIPIENTS & SEND SMS ---
     recipients = parse_recipients(args)
