@@ -11,7 +11,7 @@ import argparse
 import json
 import os
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 import requests
 from dotenv import load_dotenv
@@ -125,7 +125,7 @@ def main():
     parser.add_argument(
         "--date",
         type=str,
-        help="Target date in YYYY-MM-DD format (default: tomorrow)",
+        help="Target date in YYYY-MM-DD format (default: today)",
     )
     parser.add_argument(
         "--lang",
@@ -165,8 +165,8 @@ def main():
     if args.date:
         target_date = args.date
     else:
-        tomorrow_dt = datetime.now(timezone.utc) + timedelta(days=1)
-        target_date = tomorrow_dt.strftime("%Y-%m-%d")
+        today_dt = datetime.now(timezone.utc)
+        target_date = today_dt.strftime("%Y-%m-%d")
 
     # --- PING TRAININGPEAKS EXACTLY ONCE ---
     logger.info(f"🔍 Fetching Day Note for target date: {target_date} (1 TP Ping)")

@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       target_date:
-        description: 'Target date (YYYY-MM-DD). Leave empty for tomorrow.'
+        description: 'Target date (YYYY-MM-DD). Leave empty for today.'
         required: false
         default: ''
 
