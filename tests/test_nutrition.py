@@ -164,13 +164,13 @@ def test_format_rice_plan_message():
 
     # French standard display
     title_fr, body_fr = format_rice_plan_message(plan, lang="fr", for_sms=False)
-    assert "Plan Repas & Riz Hom Mali : 300g" in title_fr
-    assert "PLAN NUTRITION DU JOUR" in body_fr
+    assert "Plan Repas Demain : 300g" in title_fr
+    assert "PLAN NUTRITION DEMAIN" in body_fr
     assert "140g Riz Hom Mali Cuit" in body_fr
 
     # Thai SMS format
     title_th_sms, body_th_sms = format_rice_plan_message(plan, lang="th", for_sms=True)
-    assert "[แผนข้าวหอมมะลิ 2026-02-02]" in title_th_sms
+    assert "[แผนข้าวสำหรับพรุ่งนี้ 2026-02-02]" in title_th_sms
     assert "มื้อเช้า: ข้าวโอ๊ต 60g" in body_th_sms
     assert "มื้อเที่ยง: ข้าวหอมมะลิสุก 140g" in body_th_sms
     assert "\n\n" not in body_th_sms  # verify SMS sanitization

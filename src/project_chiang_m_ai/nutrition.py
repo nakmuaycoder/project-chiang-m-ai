@@ -17,12 +17,12 @@ HOM_MALI_RATIO = 2.35
 
 NUTRITION_TRANSLATIONS = {
     "fr": {
-        "title_prefix": "Plan Repas & Riz Hom Mali",
-        "header": "PLAN NUTRITION DU JOUR - {date}",
+        "title_prefix": "Plan Repas Demain",
+        "header": "PLAN NUTRITION DEMAIN - {date}",
         "category_label": "Catégorie",
         "duration": "Durée",
         "dplus": "D+",
-        "breakdown_header": "RÉPARTITION NUTRITION DU JOUR :",
+        "breakdown_header": "RÉPARTITION NUTRITION DEMAIN :",
         "breakfast": "Petit-déjeuner : {oats}g Flocons d'Avoine",
         "intra": "Pendant l'effort : {intra}g Glucides (Boisson d'effort & Gels)",
         "intra_rest": "Pendant l'effort : 0g (Repos)",
@@ -31,7 +31,7 @@ NUTRITION_TRANSLATIONS = {
         "snack_rest": "Collation 16h : Repos (0g)",
         "dinner": "Dîner (Soir) : {diner}g Riz Hom Mali Cuit",
         "total": (
-            "TOTAL RIZ HOM MALI JOUR : {total_cuit}g Cuit "
+            "TOTAL RIZ HOM MALI DEMAIN : {total_cuit}g Cuit "
             "(~{total_cru}g Sec Rice Cooker)"
         ),
         "no_note": "Plan Riz ({date}) : Aucune note trouvée sur TrainingPeaks.",
@@ -44,12 +44,12 @@ NUTRITION_TRANSLATIONS = {
         },
     },
     "en": {
-        "title_prefix": "Hom Mali Rice Plan",
-        "header": "DAILY NUTRITION PLAN - {date}",
+        "title_prefix": "Tomorrow Rice Plan",
+        "header": "TOMORROW NUTRITION PLAN - {date}",
         "category_label": "Category",
         "duration": "Duration",
         "dplus": "D+",
-        "breakdown_header": "DAILY NUTRITION BREAKDOWN:",
+        "breakdown_header": "TOMORROW NUTRITION BREAKDOWN:",
         "breakfast": "Breakfast: {oats}g Rolled Oats",
         "intra": "During Workout: {intra}g Carbs (Sports Drink & Gels)",
         "intra_rest": "During Workout: 0g (Rest)",
@@ -58,7 +58,8 @@ NUTRITION_TRANSLATIONS = {
         "snack_rest": "Afternoon Snack (4PM): Rest (0g)",
         "dinner": "Dinner: {diner}g Cooked Hom Mali Rice",
         "total": (
-            "TOTAL HOM MALI RICE: {total_cuit}g Cooked (~{total_cru}g Dry Rice Cooker)"
+            "TOTAL HOM MALI RICE TOMORROW: {total_cuit}g Cooked "
+            "(~{total_cru}g Dry Rice Cooker)"
         ),
         "no_note": "Rice Plan ({date}): No note found on TrainingPeaks.",
         "categories": {
@@ -70,12 +71,12 @@ NUTRITION_TRANSLATIONS = {
         },
     },
     "th": {
-        "title_prefix": "แผนข้าวหอมมะลิ",
-        "header": "แผนโภชนาการประจำวัน - {date}",
+        "title_prefix": "แผนข้าวสำหรับพรุ่งนี้",
+        "header": "แผนโภชนาการสำหรับพรุ่งนี้ - {date}",
         "category_label": "ประเภท",
         "duration": "ระยะเวลา",
         "dplus": "ความชัน",
-        "breakdown_header": "ตารางโภชนาการประจำวัน:",
+        "breakdown_header": "ตารางโภชนาการสำหรับพรุ่งนี้:",
         "breakfast": "มื้อเช้า: ข้าวโอ๊ต {oats}g",
         "intra": "ระหว่างออกกำลังกาย: คาร์บ {intra}g (เครื่องดื่มเกลือแร่ & เจล)",
         "intra_rest": "ระหว่างออกกำลังกาย: 0g (พักผ่อน)",
@@ -84,7 +85,7 @@ NUTRITION_TRANSLATIONS = {
         "snack_rest": "อาหารว่าง (16:00 น.): พักผ่อน (0g)",
         "dinner": "มื้อเย็น: ข้าวหอมมะลิสุก {diner}g",
         "total": (
-            "รวมข้าวหอมมะลิประจำวัน: {total_cuit}g สุก (~ข้าวสาร {total_cru}g หม้อหุงข้าว)"
+            "รวมข้าวหอมมะลิสำหรับพรุ่งนี้: {total_cuit}g สุก (~ข้าวสาร {total_cru}g หม้อหุงข้าว)"
         ),
         "no_note": "แผนข้าว ({date}): ไม่พบโน้ตบน TrainingPeaks",
         "categories": {

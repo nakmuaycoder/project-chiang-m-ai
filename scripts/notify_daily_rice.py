@@ -168,17 +168,17 @@ def main():
         tomorrow_dt = datetime.now(timezone.utc) + timedelta(days=1)
         target_date = tomorrow_dt.strftime("%Y-%m-%d")
 
-    # --- PING TRAININGPEAKS EXACTLY ONCE ---
-    logger.info(f"🔍 Fetching Day Note for target date: {target_date} (1 TP Ping)")
+    # --- PING TRAININGPEAKS FOR TARGET DATE ---
+    logger.info(f"🔍 Fetching Day Note for target date: {target_date}")
 
+    tp_fetch_success = False
     notes = []
     try:
         client = TrainingPeaksClient()
         notes = client.get_day_notes(target_date)
+        tp_fetch_success = True
     except Exception as e:
-        logger.warning(
-            f"⚠️ TrainingPeaks fetch skipped ({e}). Falling back to BMR calculation."
-        )
+        logger.error(f"❌ TrainingPeaks day notes fetch failed: {e}")
 
     rice_note = None
     for n in notes:
@@ -193,7 +193,23 @@ def main():
     if rice_note and rice_note.get("description"):
         plan = parse_rice_note_text(rice_note.get("description"), target_date)
     else:
-        plan = calculate_rice_plan(target_date, [])
+        logger.info(f"ℹ️ No Day Note found for {target_date}. Fetching workouts...")
+        workouts = []
+        try:
+            client = TrainingPeaksClient()
+            workouts = client.get_workouts(target_date, target_date)
+            tp_fetch_success = True
+        except Exception as e:
+            logger.error(f"❌ TrainingPeaks workouts fetch failed: {e}")
+
+        if not tp_fetch_success:
+            logger.error(
+                "❌ TrainingPeaks API fetch failed. "
+                "Please check TP_AUTH_COOKIE / TRAININGPEAKS_COOKIE secret."
+            )
+            sys.exit(1)
+
+        plan = calculate_rice_plan(target_date, workouts)
 
     # --- PROCESS RECIPIENTS & SEND SMS ---
     recipients = parse_recipients(args)

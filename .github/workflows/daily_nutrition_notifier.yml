@@ -5,10 +5,15 @@ on:
     # Runs every day at 08:00 UTC (10:00 CEST Paris time)
     - cron: '0 8 * * *'
   workflow_dispatch:
+    inputs:
+      target_date:
+        description: 'Target date (YYYY-MM-DD). Leave empty for tomorrow.'
+        required: false
+        default: ''
 
 jobs:
   notify-rice:
-    name: Fetch Tomorrow Rice Plan & Send Free Mobile SMS
+    name: Fetch Rice Plan & Send Free Mobile SMS
     runs-on: ubuntu-latest
 
     steps:
@@ -32,4 +37,9 @@ jobs:
           TP_AUTH_COOKIE: ${{ secrets.TP_AUTH_COOKIE || secrets.TRAININGPEAKS_COOKIE }}
           TRAININGPEAKS_COOKIE: ${{ secrets.TRAININGPEAKS_COOKIE }}
           SMS_LANG: ${{ secrets.SMS_LANG || vars.SMS_LANG || 'fr' }}
-        run: uv run python scripts/notify_daily_rice.py
+        run: |
+          if [ -n "${{ github.event.inputs.target_date }}" ]; then
+            uv run python scripts/notify_daily_rice.py --date ${{ github.event.inputs.target_date }}
+          else
+            uv run python scripts/notify_daily_rice.py
+          fi
